@@ -13,7 +13,7 @@
 :root{
   color-scheme:light;
   --bg:#eef3f7; --surface:#ffffff; --ink:#102a43; --muted:#52677d; --line:#d6e1ea; --field:#f7fafc;
-  --teal:#0b7a75; --teal-soft:#e1f3f1; --blue:#1f5fae; --blue-soft:#e7eff9;
+  --teal:#0b7a75; --teal-soft:#e1f3f1; --blue:#1f5fae; --blue-soft:#e7eff9; --violet:#5a45a8; --violet-soft:#efecfa;
   --ok:#1a7f4b; --ok-soft:#e3f4ea; --warn:#a85300; --warn-soft:#fff3df; --bad:#b42318; --bad-soft:#fdeceb;
   --shadow:0 1px 2px rgba(16,42,67,.06),0 4px 14px rgba(16,42,67,.06);
   --f-display:"Bai Jamjuree","IBM Plex Sans Thai",system-ui,sans-serif;
@@ -72,6 +72,15 @@ main{padding:0 max(16px,env(safe-area-inset-right,0px)) 40px max(16px,env(safe-a
 .big b{font-family:var(--f-display);font-size:1.15rem;line-height:1.3}
 .big span{font-size:.82rem;opacity:.9}
 .big.send{background:var(--teal)}.big.recv{background:var(--blue)}
+.big.inc{background:var(--violet);grid-column:1/-1;min-height:0;flex-direction:row;align-items:center;gap:14px;padding:16px}
+.big.inc .t{display:flex;flex-direction:column;gap:2px}
+.btn-violet{background:var(--violet);color:#fff}
+.dt{display:grid;grid-template-columns:1.3fr 1fr;gap:10px}
+.opt{font-weight:400;color:var(--muted);font-size:.85rem}
+.flags{display:flex;flex-direction:column;gap:6px}
+.flag{font-size:.85rem;padding:6px 10px;border-radius:8px}
+.flag.ok{background:var(--ok-soft);color:var(--ok)}.flag.warn{background:var(--warn-soft);color:var(--warn)}.flag.bad{background:var(--bad-soft);color:var(--bad)}
+.tag-inc{display:inline-block;font-size:.72rem;font-weight:600;color:var(--violet);background:var(--violet-soft);border-radius:6px;padding:1px 6px;margin-left:6px;white-space:nowrap}
 
 .me{display:flex;justify-content:space-between;gap:10px;align-items:center}
 .me-info{display:flex;gap:12px;align-items:center;min-width:0}
@@ -105,7 +114,7 @@ main{padding:0 max(16px,env(safe-area-inset-right,0px)) 40px max(16px,env(safe-a
 .stat .n{font-family:var(--f-display);font-size:1.8rem;font-weight:700;line-height:1}.stat .l{font-size:.82rem;color:var(--muted)}
 .toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center}.toolbar .input{max-width:320px}
 .tbl-wrap{overflow-x:auto;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow)}
-table{border-collapse:collapse;width:100%;min-width:760px;font-size:.9rem}
+table{border-collapse:collapse;width:100%;min-width:880px;font-size:.9rem}
 th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line);vertical-align:middle}
 th{font-size:.75rem;letter-spacing:.04em;color:var(--muted);font-weight:600;background:var(--field)}
 tr:last-child td{border-bottom:0}
@@ -240,12 +249,41 @@ function bindCombo(id){
   inp.addEventListener('blur',()=>setTimeout(close,150));
 }
 
+/* ---------- date + time of specimen ---------- */
+const p2=n=>String(n).padStart(2,'0');
+const isoDate=d=>`${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}`;
+// Sample No. 10 หลัก: หลัก 1–2 = วันที่, 3–4 = เดือน (ไม่มีปี ใช้ปีปัจจุบัน ถ้าเกินวันนี้ถือเป็นปีก่อน)
+function dateFromSample(s){
+  if(!/^\d{10}$/.test(s))return '';
+  const dd=+s.slice(0,2),mm=+s.slice(2,4);if(mm<1||mm>12||dd<1)return '';
+  const now=new Date();let d=new Date(now.getFullYear(),mm-1,dd);
+  if(d.getMonth()!==mm-1)return '';
+  if(d.getTime()-now.getTime()>86400000)d=new Date(now.getFullYear()-1,mm-1,dd);
+  return isoDate(d);
+}
+function dtField(id,label){return `<div class="field"><span class="lab">${label}</span>
+  <div class="dt"><input class="input" id="${id}-date" type="date" max="${isoDate(new Date())}" aria-label="วันที่ส่งตรวจ">
+  <input class="input mono" id="${id}-time" type="time" aria-label="เวลาส่งตรวจ"></div>
+  <div class="hint" id="${id}-hint">ถ้ากรอก Sample No. ระบบจะเติมวันที่ให้จากเลข 4 หลักแรก</div></div>`}
+function getSpec(id){const d=document.getElementById(id+'-date').value,t=document.getElementById(id+'-time').value;return d&&t?`${d}T${t}`:''}
+function bindSampleDate(sampleId,id){
+  const s=document.getElementById(sampleId),dIn=document.getElementById(id+'-date');
+  dIn.addEventListener('input',()=>{dIn.dataset.auto=''});
+  s.addEventListener('input',()=>{const iso=dateFromSample(s.value.trim());
+    if(iso&&(!dIn.value||dIn.dataset.auto)){dIn.value=iso;dIn.dataset.auto='1';dIn.dispatchEvent(new Event('change'))}});
+}
+const hnField=id=>`<div class="field"><label for="${id}">HN</label><input class="input mono" id="${id}" type="text" inputmode="numeric" autocomplete="off" spellcheck="false"></div>`;
+const backHead=t=>`<div><button class="linkbtn" id="back">← กลับ</button><h2>${t}</h2></div>`;
+const meBox=l=>`<div class="field"><span class="lab">${l}</span><div class="input static">${esc(ME.first)} ${esc(ME.last)} (${esc(ME.nick)})</div></div>`;
+const errBox=m=>`<div class="alert bad">${esc(m)}</div>`;
+const sampleTxt=s=>s?esc(s):'<span class="muted">ยังไม่มี Sample No.</span>';
+
 /* ---------- staff views ---------- */
 function render(){
   $('#mode-ward').setAttribute('aria-pressed',mode==='ward');$('#mode-lab').setAttribute('aria-pressed',mode==='lab');
   if(mode==='lab')return labPin?renderLab():vPin();
   if(!ME&&view!=='login')view='register';
-  ({register:vRegister,login:vLogin,home:vHome,checkin:vIn,checkout:vOut,done:vDone})[view]();
+  ({register:vRegister,login:vLogin,home:vHome,checkin:vIn,checkout:vOut,include:vInc,done:vDone})[view]();
   window.scrollTo(0,0);
 }
 function vRegister(){
@@ -266,7 +304,7 @@ function vRegister(){
     busy(b,true);
     try{const r=await run('apiRegister',{id:v('id'),first:v('first'),last:v('last'),nick:v('nick')});
       store.set(TOKEN_KEY,r.token);ME=r.me;view='home';render();toast('ลงทะเบียนแล้ว ยินดีต้อนรับ '+ME.nick)}
-    catch(err){$('#err').innerHTML=`<div class="alert bad">${esc(err.message)}</div>`;busy(b,false)}};
+    catch(err){$('#err').innerHTML=errBox(err.message);busy(b,false)}};
 }
 function vLogin(){
   app.innerHTML=`<div class="col"><section class="panel"><h2>เข้าใช้บนเครื่องใหม่</h2>
@@ -278,7 +316,7 @@ function vLogin(){
   $('#back').onclick=()=>{view='register';render()};
   $('#f').onsubmit=async e=>{e.preventDefault();const b=e.target.querySelector('button[type=submit]');busy(b,true,'กำลังตรวจสอบ…');
     try{const r=await run('apiLogin',$('#l-id').value,$('#l-first').value);store.set(TOKEN_KEY,r.token);ME=r.me;view='home';render();toast('สวัสดี '+ME.nick)}
-    catch(err){$('#err').innerHTML=`<div class="alert bad">${esc(err.message)}</div>`;busy(b,false)}};
+    catch(err){$('#err').innerHTML=errBox(err.message);busy(b,false)}};
 }
 function vHome(){
   app.innerHTML=`<div class="col">
@@ -287,101 +325,158 @@ function vHome(){
      <button class="linkbtn" id="logout">ไม่ใช่ฉัน</button></div></section>
    <div class="big-actions">
      <button class="big send" id="go-in">${icSend}<b>บันทึกส่งใบตามสไลด์</b><span>มาส่งใบตาม แล้วกลับมารับภายหลัง</span></button>
-     <button class="big recv" id="go-out">${icRecv}<b>บันทึกรับสไลด์</b><span>หยิบสไลด์จากตะกร้า</span></button>
+     <button class="big recv" id="go-out">${icRecv}<b>บันทึกรับสไลด์</b><span>หยิบสไลด์ที่ส่งใบตามไว้</span></button>
+     <button class="big inc" id="go-inc">${icRecv}<span class="t"><b>บันทึกรับ Slide include</b><span>สไลด์ที่หมอขอ include วางในตะกร้า ไม่ต้องส่งใบตาม</span></span></button>
    </div>
    <section class="panel"><div class="me"><h3>รายการล่าสุดของฉัน</h3><button class="linkbtn" id="refresh">รีเฟรช</button></div>
     <div class="mylist" id="mylist"><div class="muted small">กำลังโหลด…</div></div></section></div>`;
   $('#logout').onclick=()=>{store.del(TOKEN_KEY);ME=null;view='login';render()};
   $('#go-in').onclick=()=>{view='checkin';render()};
   $('#go-out').onclick=()=>{view='checkout';render()};
+  $('#go-inc').onclick=()=>{view='include';render()};
   const load=async()=>{try{const rows=await run('apiMine',store.get(TOKEN_KEY));
-    $('#mylist').innerHTML=rows.length?rows.map(r=>`<div class="it"><div style="min-width:0"><div class="mono">${esc(r.sample)}</div><div class="small muted">HN ${esc(r.hn)} · ${esc(r.ward)} · ส่งใบตาม ${esc(r.reqAt)}</div></div>${pill(r.status)}</div>`).join(''):'<div class="muted small">ยังไม่มีรายการ เมื่อบันทึกส่งใบตามหรือรับสไลด์ รายการจะขึ้นที่นี่</div>'}
-    catch(err){$('#mylist').innerHTML=`<div class="alert bad">${esc(err.message)}</div>`}};
+    $('#mylist').innerHTML=rows.length?rows.map(r=>`<div class="it"><div style="min-width:0"><div class="mono">HN ${esc(r.hn)}${r.include?'<span class="tag-inc">Include</span>':''}</div><div class="small muted">Sample ${sampleTxt(r.sample)} · ${esc(r.ward)} · ส่งตรวจ ${esc(r.specAt||'–')}</div></div>${pill(r.status)}</div>`).join(''):'<div class="muted small">ยังไม่มีรายการ เมื่อบันทึกส่งใบตามหรือรับสไลด์ รายการจะขึ้นที่นี่</div>'}
+    catch(err){$('#mylist').innerHTML=errBox(err.message)}};
   $('#refresh').onclick=load;load();
 }
-function dupCard(r){
+
+/* ส่งใบตามสไลด์: บังคับ HN + วันเวลาส่งตรวจ + วอร์ด, Sample No. ไม่บังคับ */
+function hardCard(r){
   return `<div class="dupcard" role="alert"><h3>Sample No. ของคนไข้ HN นี้ถูกส่งใบตามมาแล้ว</h3>
     <div class="small">ไม่ต้องบันทึกซ้ำ</div>
-    <dl class="kv"><dt>Sample No.</dt><dd class="mono">${esc(r.sample)}</dd><dt>HN</dt><dd class="mono">${esc(r.hn)}</dd>
-    <dt>วอร์ด</dt><dd>${esc(r.ward)}</dd><dt>ส่งใบตามโดย</dt><dd>${esc(r.reqName)}</dd>
-    <dt>เวลาส่งใบตาม</dt><dd>${esc(r.reqAt)} <span class="small">(${ago(r.reqTs)}ที่แล้ว)</span></dd>
+    <dl class="kv"><dt>HN</dt><dd class="mono">${esc(r.hn)}</dd><dt>Sample No.</dt><dd class="mono">${sampleTxt(r.sample)}</dd>
+    <dt>วอร์ด</dt><dd>${esc(r.ward)}</dd><dt>วันเวลาส่งตรวจ</dt><dd>${esc(r.specAt||'–')}</dd>
+    <dt>ส่งใบตามโดย</dt><dd>${esc(r.reqName)}</dd><dt>เวลาส่งใบตาม</dt><dd>${esc(r.reqAt)} <span class="small">(${ago(r.reqTs)}ที่แล้ว)</span></dd>
     <dt>สถานะ</dt><dd>${r.status==='out'?`รับสไลด์แล้ว โดย ${esc(r.recvName)} เมื่อ ${esc(r.recvAt)}`:'ยังไม่ได้รับสไลด์'}</dd></dl></div>`;
 }
+function softCard(recs,withBtn){
+  return `<div class="dupcard" role="alert"><h3>HN นี้มีใบตามที่วันเวลาส่งตรวจใกล้กันอยู่แล้ว</h3>
+    <div class="small">อาจเป็นการส่งใบตามซ้ำ ตรวจรายการด้านล่างก่อน</div>
+    ${recs.slice(0,3).map(r=>`<dl class="kv"><dt>วันเวลาส่งตรวจ</dt><dd>${esc(r.specAt||'–')}</dd><dt>Sample No.</dt><dd class="mono">${sampleTxt(r.sample)}</dd>
+      <dt>วอร์ด</dt><dd>${esc(r.ward)}</dd><dt>ส่งใบตามโดย</dt><dd>${esc(r.reqName)} · ${esc(r.reqAt)}</dd><dt>สถานะ</dt><dd>${STATUS[r.status]}</dd></dl>`).join('<hr style="border:0;border-top:1px solid rgba(0,0,0,.08);width:100%;margin:2px 0">')}
+    ${withBtn?'<button type="button" class="btn btn-ghost" id="force">เป็นคนละรายการ บันทึกต่อ</button>':''}</div>`;
+}
 function vIn(){
-  app.innerHTML=`<div class="col"><section class="panel">
-    <div><button class="linkbtn" id="back">← กลับ</button><h2>บันทึกส่งใบตามสไลด์</h2></div>
+  app.innerHTML=`<div class="col"><section class="panel">${backHead('บันทึกส่งใบตามสไลด์')}
     <form id="f" class="form" novalidate>
-      ${scanField('q-sample','Sample No.')}
-      <div class="field"><label for="q-hn">HN</label><input class="input mono" id="q-hn" type="text" inputmode="numeric" autocomplete="off" spellcheck="false"></div>
+      ${hnField('q-hn')}
+      ${dtField('q','วันที่และเวลาส่งตรวจ')}
+      ${scanField('q-sample','Sample No. <span class="opt">(ถ้ามี)</span>')}
       <div id="dup"></div>
       ${wardCombo('q-ward',store.get(WARD_KEY)||'')}
-      <div class="field"><span class="lab">ผู้ส่งใบตาม</span><div class="input static">${esc(ME.first)} ${esc(ME.last)} (${esc(ME.nick)})</div></div>
-      <div class="hint">วันที่และเวลาจะบันทึกให้อัตโนมัติเมื่อกดยืนยัน</div>
+      ${meBox('ผู้ส่งใบตาม')}
+      <div class="hint">เวลาส่งใบตามจะบันทึกให้อัตโนมัติเมื่อกดยืนยัน</div>
       <div id="err"></div>
       <button class="btn btn-teal btn-block" type="submit">ยืนยันบันทึกส่งใบตาม</button>
     </form></section></div>`;
-  bindScan('q-sample');bindCombo('q-ward');
+  bindScan('q-sample');bindCombo('q-ward');bindSampleDate('q-sample','q');
   $('#back').onclick=()=>{view='home';render()};
   const sIn=$('#q-sample'),hIn=$('#q-hn');let seq=0,timer=null;
-  // เตือนทันทีเมื่อ Sample No. + HN นี้เคยส่งใบตามแล้ว
-  const check=async()=>{const s=sIn.value.trim(),h=hIn.value.trim(),box=$('#dup');
-    if(!s||!h){box.innerHTML='';return}
-    const my=++seq;let rows=[];try{rows=await run('apiLookup',store.get(TOKEN_KEY),s,h)}catch(e){return}
+  const data=force=>({hn:hIn.value.trim(),sample:sIn.value.trim(),specAt:getSpec('q'),ward:$('#q-ward').value.trim(),force:!!force});
+  const check=async()=>{const d=data(),box=$('#dup');
+    if(!d.hn||(!d.sample&&!d.specAt)){box.innerHTML='';return}
+    const my=++seq;let r;try{r=await run('apiPrecheck',store.get(TOKEN_KEY),d)}catch(e){return}
     if(my!==seq)return;
-    box.innerHTML=rows.length?dupCard(rows[0]):'';
-    if(rows.length&&navigator.vibrate)navigator.vibrate([120,80,120]);};
+    box.innerHTML=r.hard?hardCard(r.hard):r.soft.length?softCard(r.soft,false):'';
+    if((r.hard||r.soft.length)&&navigator.vibrate)navigator.vibrate([120,80,120]);};
   const later=()=>{clearTimeout(timer);timer=setTimeout(check,600)};
-  sIn.addEventListener('input',later);hIn.addEventListener('input',later);
-  sIn.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();hIn.focus()}});
-  hIn.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();clearTimeout(timer);check();$('#q-ward').focus()}});
-  $('#f').onsubmit=async e=>{e.preventDefault();const b=e.target.querySelector('button[type=submit]');busy(b,true);$('#err').innerHTML='';
-    try{const r=await run('apiCheckIn',store.get(TOKEN_KEY),sIn.value,hIn.value,$('#q-ward').value);
-      if(r.dup){$('#dup').innerHTML=dupCard(r.rec);$('#dup').scrollIntoView({behavior:'smooth',block:'center'});busy(b,false);return}
+  ['q-hn','q-sample','q-date','q-time'].forEach(id=>{const el=document.getElementById(id);el.addEventListener('input',later);el.addEventListener('change',later)});
+  sIn.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('#q-ward').focus()}});
+  const submit=async(force,b)=>{busy(b,true);$('#err').innerHTML='';
+    try{const r=await run('apiCheckIn',store.get(TOKEN_KEY),data(force));
+      if(r.dup==='hard'){$('#dup').innerHTML=hardCard(r.rec);$('#dup').scrollIntoView({behavior:'smooth',block:'center'});busy(b,false);return}
+      if(r.dup==='soft'){$('#dup').innerHTML=softCard(r.recs,true);$('#dup').scrollIntoView({behavior:'smooth',block:'center'});busy(b,false);
+        $('#force').onclick=()=>submit(true,$('#force'));return}
       store.set(WARD_KEY,r.ward);lastDone={kind:'in',r};view='done';render()}
-    catch(err){$('#err').innerHTML=`<div class="alert bad">${esc(err.message)}</div>`;busy(b,false)}};
+    catch(err){$('#err').innerHTML=errBox(err.message);busy(b,false)}};
+  $('#f').onsubmit=e=>{e.preventDefault();submit(false,e.target.querySelector('button[type=submit]'))};
 }
+
+/* รับสไลด์: บังคับ Sample No. + HN + วันเวลาส่งตรวจ */
 function vOut(){
-  app.innerHTML=`<div class="col"><section class="panel">
-    <div><button class="linkbtn" id="back">← กลับ</button><h2>บันทึกรับสไลด์</h2></div>
-    ${scanField('v-sample','Sample No. บนสไลด์หรือใบตาม')}
-    <div id="v-card"></div></section></div>`;
-  bindScan('v-sample');
+  app.innerHTML=`<div class="col"><section class="panel">${backHead('บันทึกรับสไลด์')}
+    <form id="f" class="form" novalidate>
+      ${scanField('v-sample','Sample No.')}
+      ${hnField('v-hn')}
+      ${dtField('v','วันที่และเวลาส่งตรวจ')}
+      <div id="err"></div>
+      <button class="btn btn-blue btn-block" type="submit">ค้นหาใบตาม</button>
+    </form>
+    <div id="v-card" class="form"></div></section></div>`;
+  bindScan('v-sample');bindSampleDate('v-sample','v');
   $('#back').onclick=()=>{view='home';render()};
-  const inp=$('#v-sample');let seq=0,timer=null;
-  const card=(r,i)=>`<div class="check ${r.status==='in'?'ok':''}">
-      <div class="me"><span class="small muted">ตรวจให้ตรงก่อนหยิบ</span>${pill(r.status)}</div>
+  $('#v-sample').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('#v-hn').focus()}});
+  const data=()=>({sample:$('#v-sample').value.trim(),hn:$('#v-hn').value.trim(),specAt:getSpec('v')});
+  const card=(r,i,d)=>`<div class="check ${r.sampleOk&&r.specOk?'ok':''}">
+      <div class="me"><span class="small muted">ใบตามที่พบ</span>${pill(r.status)}</div>
       <div class="ward-big">${esc(r.ward)}</div>
-      <dl class="kv"><dt>HN</dt><dd class="mono" style="font-size:1.1rem;font-weight:600">${esc(r.hn)}</dd><dt>Sample No.</dt><dd class="mono">${esc(r.sample)}</dd>
+      <dl class="kv"><dt>HN</dt><dd class="mono" style="font-size:1.1rem;font-weight:600">${esc(r.hn)}</dd>
+      <dt>Sample No.</dt><dd class="mono">${r.sample?esc(r.sample):`<span class="muted">ยังไม่ระบุ</span>`}</dd>
+      <dt>วันเวลาส่งตรวจ</dt><dd>${esc(r.specAt||'–')}</dd>
       <dt>ส่งใบตามโดย</dt><dd>${esc(r.reqName)}</dd><dt>เวลาส่งใบตาม</dt><dd>${esc(r.reqAt)}</dd></dl>
-      ${r.status==='in'?`<div id="err-${i}"></div><button class="btn btn-blue btn-block" data-i="${i}">ยืนยันรับสไลด์ HN ${esc(r.hn)}</button>`:
-        `<div class="alert ok">รับสไลด์ไปแล้วโดย ${esc(r.recvName)} เมื่อ ${esc(r.recvAt)}</div>`}
+      <div class="flags">
+        ${r.sampleFill?`<div class="flag ok">ระบบจะบันทึก Sample No. ${esc(d.sample)} ลงใบตามนี้ให้</div>`:r.sampleOk?'<div class="flag ok">Sample No. ตรงกับใบตาม</div>':`<div class="flag bad">Sample No. ไม่ตรงกับใบตาม ห้ามหยิบ</div>`}
+        ${r.specOk?'<div class="flag ok">วันเวลาส่งตรวจตรงกับใบตาม</div>':'<div class="flag warn">วันเวลาส่งตรวจไม่ตรงกับใบตาม ตรวจให้แน่ใจก่อนหยิบ</div>'}
+      </div>
+      <div id="err-${i}"></div>
+      ${r.sampleOk?`<button class="btn btn-blue btn-block" data-i="${i}">ยืนยันรับสไลด์ HN ${esc(r.hn)}</button>`:''}
     </div>`;
-  const show=async()=>{const s=inp.value.trim(),box=$('#v-card');if(!s){box.innerHTML='';return}
-    const my=++seq;box.innerHTML='<div class="muted small">กำลังค้นหา…</div>';
-    let rows;try{rows=await run('apiLookup',store.get(TOKEN_KEY),s,'')}catch(err){box.innerHTML=`<div class="alert bad">${esc(err.message)}</div>`;return}
-    if(my!==seq)return;
-    if(!rows.length){box.innerHTML='<div class="alert warn">ไม่พบการส่งใบตามของ Sample No. นี้ ตรวจเลขอีกครั้ง หรือแจ้งเจ้าหน้าที่ห้องปฏิบัติการ</div>';return}
-    const open=rows.filter(r=>r.status==='in');
-    const list=open.length?open:rows.slice(0,1);
-    box.innerHTML=(open.length>1?'<div class="alert info">Sample No. นี้มีหลาย HN เลือกรายการที่ตรงกับสไลด์</div>':'')+list.map(card).join('');
-    box.querySelectorAll('button[data-i]').forEach(b=>b.onclick=async()=>{const r=list[+b.dataset.i];busy(b,true);
-      try{const d=await run('apiCheckOut',store.get(TOKEN_KEY),r.sample,r.hn);lastDone={kind:'out',r:d};view='done';render()}
-      catch(err){$('#err-'+b.dataset.i).innerHTML=`<div class="alert bad">${esc(err.message)}</div>`;busy(b,false)}});
+  $('#f').onsubmit=async e=>{e.preventDefault();const b=e.target.querySelector('button[type=submit]'),box=$('#v-card');
+    const d=data();$('#err').innerHTML='';box.innerHTML='';
+    if(!d.sample||!d.hn||!d.specAt){$('#err').innerHTML=errBox('กรอก Sample No., HN และวันเวลาส่งตรวจให้ครบทุกช่อง');return}
+    busy(b,true,'กำลังค้นหา…');
+    let res;try{res=await run('apiFindForReceive',store.get(TOKEN_KEY),d)}catch(err){$('#err').innerHTML=errBox(err.message);busy(b,false);return}
+    busy(b,false);
+    if(res.received){const r=res.received;box.innerHTML=`<div class="alert bad">Sample No. นี้ถูกรับสไลด์ไปแล้ว (HN ${esc(r.hn)}) โดย ${esc(r.recvName)} เมื่อ ${esc(r.recvAt)}</div>`;return}
+    if(!res.open.length){box.innerHTML=`<div class="alert warn">ไม่พบใบตามที่ยังไม่รับของ HN นี้ ถ้าเป็นสไลด์ที่หมอขอ include ให้ใช้ "บันทึกรับ Slide include"</div>
+      <button class="btn btn-violet btn-block" id="to-inc">ไปบันทึกรับ Slide include</button>`;
+      $('#to-inc').onclick=()=>{carry=d;view='include';render()};return}
+    box.innerHTML=(res.open.length>1?'<div class="alert info">HN นี้มีใบตามมากกว่า 1 รายการ เลือกรายการที่ตรงกับสไลด์</div>':'')+res.open.map((r,i)=>card(r,i,d)).join('');
+    box.scrollIntoView({behavior:'smooth',block:'start'});
+    box.querySelectorAll('button[data-i]').forEach(btn=>btn.onclick=async()=>{const r=res.open[+btn.dataset.i];busy(btn,true);
+      try{const out=await run('apiCheckOut',store.get(TOKEN_KEY),{row:r.row,sample:d.sample,hn:d.hn,specAt:d.specAt});lastDone={kind:'out',r:out};view='done';render()}
+      catch(err){$('#err-'+btn.dataset.i).innerHTML=errBox(err.message);busy(btn,false)}});
   };
-  inp.addEventListener('input',()=>{clearTimeout(timer);timer=setTimeout(show,500)});
-  inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();clearTimeout(timer);show()}});
+}
+
+/* รับ Slide include: ไม่ต้องส่งใบตามก่อน */
+let carry=null;
+function vInc(){
+  app.innerHTML=`<div class="col"><section class="panel">${backHead('บันทึกรับ Slide include')}
+    <div class="alert info">สำหรับสไลด์ที่หมอขอ include ห้องปฏิบัติการวางไว้ในตะกร้าแล้ว หยิบได้เลยโดยไม่ต้องส่งใบตาม</div>
+    <form id="f" class="form" novalidate>
+      ${scanField('i-sample','Sample No.')}
+      ${hnField('i-hn')}
+      ${dtField('i','วันที่และเวลาส่งตรวจ')}
+      ${wardCombo('i-ward',store.get(WARD_KEY)||'')}
+      ${meBox('ผู้รับสไลด์')}
+      <div id="err"></div>
+      <button class="btn btn-violet btn-block" type="submit">ยืนยันรับ Slide include</button>
+    </form></section></div>`;
+  bindScan('i-sample');bindCombo('i-ward');bindSampleDate('i-sample','i');
+  $('#back').onclick=()=>{view='home';render()};
+  if(carry){$('#i-sample').value=carry.sample;$('#i-hn').value=carry.hn;const [dd,tt]=carry.specAt.split('T');$('#i-date').value=dd;$('#i-time').value=tt;carry=null}
+  $('#i-sample').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('#i-hn').focus()}});
+  $('#f').onsubmit=async e=>{e.preventDefault();const b=e.target.querySelector('button[type=submit]');$('#err').innerHTML='';
+    const d={sample:$('#i-sample').value.trim(),hn:$('#i-hn').value.trim(),specAt:getSpec('i'),ward:$('#i-ward').value.trim()};
+    if(!d.sample||!d.hn||!d.specAt){$('#err').innerHTML=errBox('กรอก Sample No., HN และวันเวลาส่งตรวจให้ครบทุกช่อง');return}
+    busy(b,true);
+    try{const r=await run('apiInclude',store.get(TOKEN_KEY),d);store.set(WARD_KEY,r.ward);lastDone={kind:'inc',r};view='done';render()}
+    catch(err){$('#err').innerHTML=errBox(err.message);busy(b,false)}};
 }
 function vDone(){
   const {kind,r}=lastDone;
+  const T={in:['บันทึกส่งใบตามสไลด์แล้ว','ส่งใบตามอีกรายการ','checkin','btn-teal'],out:['บันทึกรับสไลด์แล้ว','รับสไลด์อีกรายการ','checkout','btn-blue'],inc:['บันทึกรับ Slide include แล้ว','รับ Slide include อีกรายการ','include','btn-violet']}[kind];
   app.innerHTML=`<div class="col"><section class="panel done">
     <div class="tick"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg></div>
-    <h2>${kind==='in'?'บันทึกส่งใบตามสไลด์แล้ว':'บันทึกรับสไลด์แล้ว'}</h2>
+    <h2>${T[0]}</h2>
     <div class="time">${esc(r.time)}</div><div class="small muted">${esc(r.date)}</div>
-    <dl class="kv" style="text-align:left"><dt>Sample No.</dt><dd class="mono">${esc(r.sample)}</dd><dt>HN</dt><dd class="mono">${esc(r.hn)}</dd><dt>วอร์ด</dt><dd>${esc(r.ward)}</dd></dl>
-    ${kind==='in'?`<p class="small muted" style="margin:0">กลับมารับสไลด์ได้ประมาณ ${LATE_MIN} นาที</p>`:''}
-    <button class="btn btn-ghost btn-block" id="again">${kind==='in'?'ส่งใบตามอีกรายการ':'รับสไลด์อีกรายการ'}</button>
-    <button class="btn ${kind==='in'?'btn-teal':'btn-blue'} btn-block" id="home">กลับหน้าแรก</button></section></div>`;
-  $('#again').onclick=()=>{view=kind==='in'?'checkin':'checkout';render()};
+    <dl class="kv" style="text-align:left"><dt>HN</dt><dd class="mono">${esc(r.hn)}</dd><dt>Sample No.</dt><dd class="mono">${sampleTxt(r.sample)}</dd>
+    <dt>วันเวลาส่งตรวจ</dt><dd>${esc(r.specAt||'–')}</dd><dt>วอร์ด</dt><dd>${esc(r.ward)}</dd></dl>
+    ${kind==='in'?`<p class="small muted" style="margin:0">กลับมารับสไลด์ได้ประมาณ ${LATE_MIN} นาที ตอนรับต้องกรอก Sample No., HN และวันเวลาส่งตรวจ</p>`:''}
+    <button class="btn btn-ghost btn-block" id="again">${T[1]}</button>
+    <button class="btn ${T[3]} btn-block" id="home">กลับหน้าแรก</button></section></div>`;
+  $('#again').onclick=()=>{view=T[2];render()};
   $('#home').onclick=()=>{view='home';render()};
 }
 
@@ -409,13 +504,14 @@ function renderLab(){
    <div class="toolbar"><input class="input" id="lab-q" placeholder="ค้นหา Sample No., HN, วอร์ด, ชื่อ" value="${esc(labQ)}">
      <button class="btn btn-ghost" id="lab-refresh">รีเฟรช</button>
      <span class="small muted">${labFilter==='in'?`แดง = ส่งใบตามเกิน ${LATE_MIN} นาทีแล้วยังไม่มารับ · `:''}รีเฟรชเองทุก 1 นาที</span></div>
-   <div class="tbl-wrap"><table><thead><tr><th>Sample No.</th><th>HN</th><th>วอร์ด</th><th>ส่งใบตาม: ผู้ส่ง / เวลา</th><th>รับสไลด์: ผู้รับ / เวลา</th><th>${labFilter==='in'?'รอมาแล้ว':'ใช้เวลา'}</th></tr></thead><tbody>
-   ${rows.length?rows.map(r=>{const m=Math.round(((r.recvTs||Date.now())-r.reqTs)/60000);
+   <div class="tbl-wrap"><table><thead><tr><th>HN</th><th>Sample No.</th><th>วอร์ด</th><th>วันเวลาส่งตรวจ</th><th>ส่งใบตาม: ผู้ส่ง / เวลา</th><th>รับสไลด์: ผู้รับ / เวลา</th><th>${labFilter==='in'?'รอมาแล้ว':'ใช้เวลา'}</th></tr></thead><tbody>
+   ${rows.length?rows.map(r=>{const m=r.reqTs?Math.round(((r.recvTs||Date.now())-r.reqTs)/60000):null;
      const late=r.status==='in'&&m>LATE_MIN;
-     return `<tr><td class="mono">${esc(r.sample)}</td><td class="mono">${esc(r.hn)}</td><td>${esc(r.ward)}</td>
-       <td>${esc(r.reqName)}<br><span class="small muted">${esc(r.reqAt)}</span></td>
+     return `<tr><td class="mono">${esc(r.hn)}</td><td class="mono">${r.sample?esc(r.sample):'<span class="muted">–</span>'}</td><td>${esc(r.ward)}</td>
+       <td>${esc(r.specAt||'–')}</td>
+       <td>${r.include?'<span class="tag-inc" style="margin:0">Include</span><br><span class="small muted">ไม่ได้ส่งใบตาม</span>':`${esc(r.reqName)}<br><span class="small muted">${esc(r.reqAt)}</span>`}</td>
        <td>${r.status==='out'?`${esc(r.recvName)}<br><span class="small muted">${esc(r.recvAt)}</span>`:'<span class="muted">–</span>'}</td>
-       <td class="${late?'late':''}">${dur(m)}</td></tr>`}).join(''):'<tr><td colspan="6" class="muted" style="text-align:center;padding:28px">ไม่มีรายการในกลุ่มนี้</td></tr>'}
+       <td class="${late?'late':''}">${m==null?'–':dur(m)}</td></tr>`}).join(''):'<tr><td colspan="7" class="muted" style="text-align:center;padding:28px">ไม่มีรายการในกลุ่มนี้</td></tr>'}
    </tbody></table></div></div>`;
   app.querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>{labFilter=b.dataset.f;renderLab()});
   $('#lab-refresh').onclick=reloadLab;
