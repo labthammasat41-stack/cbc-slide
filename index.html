@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<title>ตาม Slide CBC</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bai+Jamjuree:wght@500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<style>
+/* ธีมสว่างแบบห้องปฏิบัติการ: พื้นขาว-ฟ้าอ่อน ตัวอักษรน้ำเงินเข้ม สีหลักเขียวน้ำทะเล (ส่งใบตาม) และน้ำเงิน (รับสไลด์) */
+:root{
+  color-scheme:light;
+  --bg:#eef3f7; --surface:#ffffff; --ink:#102a43; --muted:#52677d; --line:#d6e1ea; --field:#f7fafc;
+  --teal:#0b7a75; --teal-soft:#e1f3f1; --blue:#1f5fae; --blue-soft:#e7eff9; --violet:#5a45a8; --violet-soft:#efecfa;
+  --ok:#1a7f4b; --ok-soft:#e3f4ea; --warn:#a85300; --warn-soft:#fff3df; --bad:#b42318; --bad-soft:#fdeceb;
+  --shadow:0 1px 2px rgba(16,42,67,.06),0 4px 14px rgba(16,42,67,.06);
+  --f-display:"Bai Jamjuree","IBM Plex Sans Thai",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans Thai",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+*{box-sizing:border-box}
+html,body{background:var(--bg)}
+body{margin:0;color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.55}
+h1,h2,h3{font-family:var(--f-display);margin:0;line-height:1.25}
+h2{font-size:1.2rem} h3{font-size:1rem}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums;letter-spacing:.02em}
+.muted{color:var(--muted)} .small{font-size:.85rem}
+button,input{font:inherit;color:inherit}
+[hidden]{display:none!important}
+:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+
+/* header */
+.head{background:var(--surface);border-bottom:1px solid var(--line);border-top:4px solid var(--teal);margin-bottom:16px}
+.head-in{max-width:980px;margin:0 auto;display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between;
+  padding:12px max(16px,env(safe-area-inset-right,0px)) 12px max(16px,env(safe-area-inset-left,0px))}
+.brand{display:flex;gap:12px;align-items:center;min-width:0}
+.mark{width:40px;height:40px;border-radius:10px;background:var(--teal-soft);display:grid;place-items:center;flex:none}
+.mark svg{width:24px;height:24px;color:var(--teal)}
+.brand h1{font-size:1.3rem;color:var(--ink)}
+.brand .org{font-size:.82rem;color:var(--muted);line-height:1.35}
+.seg{display:flex;background:var(--field);border:1px solid var(--line);border-radius:999px;padding:3px}
+.seg button{border:0;background:none;padding:6px 14px;border-radius:999px;cursor:pointer;font-size:.88rem;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:#fff}
+
+main{padding:0 max(16px,env(safe-area-inset-right,0px)) 40px max(16px,env(safe-area-inset-left,0px))}
+.col{max-width:460px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+.wide{max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:14px;box-shadow:var(--shadow)}
+.form{display:flex;flex-direction:column;gap:14px}
+.field{display:flex;flex-direction:column;gap:6px}
+.field label,.field .lab{font-weight:600;font-size:.95rem}
+.hint{font-size:.8rem;color:var(--muted)}
+.input{width:100%;padding:12px 14px;border:1.5px solid var(--line);border-radius:10px;background:var(--field);font-size:1rem;min-width:0}
+.input:focus{border-color:var(--blue);background:#fff;outline:none}
+.input.static{background:var(--bg);color:var(--muted)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.scanrow{display:flex;gap:8px}.scanrow .input{flex:1}
+.btn{border:0;border-radius:10px;padding:12px 16px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.btn-teal{background:var(--teal);color:#fff}.btn-blue{background:var(--blue);color:#fff}
+.btn-ghost{background:#fff;border:1.5px solid var(--line);color:var(--ink)}
+.btn:disabled{opacity:.55;cursor:wait}
+.btn-block{width:100%;padding:15px;font-size:1.05rem}
+.cam{flex:none;width:56px;background:var(--blue);color:#fff;border-radius:10px;border:0;cursor:pointer;display:grid;place-items:center}
+.cam svg{width:26px;height:26px}
+.linkbtn{background:none;border:0;color:var(--blue);cursor:pointer;padding:4px 0;font-size:.88rem;text-decoration:underline;align-self:flex-start}
+
+.big-actions{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.big{border:0;border-radius:16px;padding:20px 16px;cursor:pointer;display:flex;flex-direction:column;gap:8px;align-items:flex-start;text-align:left;min-height:140px;color:#fff;box-shadow:var(--shadow)}
+.big svg{width:30px;height:30px;opacity:.95}
+.big b{font-family:var(--f-display);font-size:1.15rem;line-height:1.3}
+.big span{font-size:.82rem;opacity:.9}
+.big.send{background:var(--teal)}.big.recv{background:var(--blue)}
+.big.inc{background:var(--violet);grid-column:1/-1;min-height:0;flex-direction:row;align-items:center;gap:14px;padding:16px}
+.big.inc .t{display:flex;flex-direction:column;gap:2px}
+.btn-violet{background:var(--violet);color:#fff}
+.dt{display:grid;grid-template-columns:1.3fr 1fr;gap:10px}
+.opt{font-weight:400;color:var(--muted);font-size:.85rem}
+.flags{display:flex;flex-direction:column;gap:6px}
+.flag{font-size:.85rem;padding:6px 10px;border-radius:8px}
+.rule{font-size:.85rem;padding:8px 12px;border-radius:8px;background:var(--blue-soft);color:var(--blue)}.rule.bad{background:var(--bad-soft);color:var(--bad)}.rule.warn{background:var(--warn-soft);color:var(--warn)}
+.flag.ok{background:var(--ok-soft);color:var(--ok)}.flag.warn{background:var(--warn-soft);color:var(--warn)}.flag.bad{background:var(--bad-soft);color:var(--bad)}
+.tag-inc{display:inline-block;font-size:.72rem;font-weight:600;color:var(--violet);background:var(--violet-soft);border-radius:6px;padding:1px 6px;margin-left:6px;white-space:nowrap}
+
+.me{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.me-info{display:flex;gap:12px;align-items:center;min-width:0}
+.avatar{width:44px;height:44px;border-radius:50%;background:var(--teal-soft);color:var(--teal);display:grid;place-items:center;font-family:var(--f-display);font-weight:700;flex:none}
+
+.combo{position:relative}
+.combo-list{position:absolute;left:0;right:0;top:calc(100% + 4px);background:#fff;border:1px solid var(--line);border-radius:10px;max-height:240px;overflow:auto;z-index:5;box-shadow:0 10px 28px rgba(16,42,67,.14);padding:4px;margin:0;list-style:none}
+.combo-list li{padding:10px 12px;border-radius:8px;cursor:pointer}
+.combo-list li[aria-selected="true"],.combo-list li:hover{background:var(--blue-soft)}
+
+.check{border:2px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:10px;background:#fff}
+.check.ok{border-color:var(--blue)}
+.ward-big{font-family:var(--f-display);font-size:1.5rem;font-weight:700;line-height:1.2}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:.95rem;margin:0}
+.kv dt{color:var(--muted)}.kv dd{margin:0}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;font-size:.78rem;font-weight:600;white-space:nowrap}
+.pill::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.st-in{background:var(--warn-soft);color:var(--warn)}.st-out{background:var(--ok-soft);color:var(--ok)}
+.dupcard{border:2px solid var(--warn);background:var(--warn-soft);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+.dupcard h3{color:var(--warn)}.dupcard .kv dd{font-weight:600}
+
+.done{text-align:center;align-items:center}
+.tick{width:64px;height:64px;border-radius:50%;background:var(--ok-soft);color:var(--ok);display:grid;place-items:center}
+.time{font-family:var(--f-mono);font-size:1.5rem}
+.mylist .it{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px solid var(--line);align-items:center}
+.mylist .it:first-child{border-top:0}
+
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;max-width:520px}
+.stat{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px;cursor:pointer;text-align:left;box-shadow:var(--shadow)}
+.stat[aria-pressed="true"]{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.stat .n{font-family:var(--f-display);font-size:1.8rem;font-weight:700;line-height:1}.stat .l{font-size:.82rem;color:var(--muted)}
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center}.toolbar .input{max-width:320px}
+.tbl-wrap{overflow-x:auto;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow)}
+table{border-collapse:collapse;width:100%;min-width:880px;font-size:.9rem}
+th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line);vertical-align:middle}
+th{font-size:.75rem;letter-spacing:.04em;color:var(--muted);font-weight:600;background:var(--field)}
+tr:last-child td{border-bottom:0}
+.late{color:var(--bad);font-weight:600}
+.alert{padding:12px 14px;border-radius:10px;font-size:.92rem}
+.alert{white-space:pre-line}.alert.bad{background:var(--bad-soft);color:var(--bad)}.alert.warn{background:var(--warn-soft);color:var(--warn)}.alert.ok{background:var(--ok-soft);color:var(--ok)}.alert.info{background:var(--blue-soft);color:var(--blue)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--ink);color:#fff;padding:12px 18px;border-radius:10px;font-size:.92rem;z-index:30;max-width:calc(100% - 32px)}
+.loading{text-align:center;color:var(--muted);padding:40px 0}
+
+.scan-ov{position:fixed;inset:0;background:rgba(10,24,40,.92);z-index:40;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:16px;color:#fff}
+#reader{width:min(100%,460px);border-radius:12px;overflow:hidden;background:#000}
+.scan-ov .msg{text-align:center;font-size:.92rem;max-width:420px}
+.scan-ov .row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.scan-ov .btn-ghost{background:transparent;border-color:rgba(255,255,255,.45);color:#fff}
+.photo-btn{background:#fff;color:var(--ink)}
+/* modal */
+.modal{position:fixed;inset:0;z-index:50;background:rgba(10,24,40,.55);display:flex;align-items:center;justify-content:center;
+  padding:calc(16px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) calc(16px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.modal-box{position:relative;background:#fff;border-radius:18px;width:100%;max-width:460px;max-height:100%;overflow:auto;box-shadow:0 20px 50px rgba(10,24,40,.35)}
+.modal-x{position:absolute;top:10px;right:10px;width:40px;height:40px;border-radius:50%;border:0;background:rgba(16,42,67,.08);color:var(--ink);font-size:1.3rem;line-height:1;cursor:pointer;display:grid;place-items:center;z-index:2}
+.modal-head{background:var(--teal);color:#fff;padding:22px 56px 18px 20px;border-radius:18px 18px 0 0}
+.modal-head h2{font-size:1.25rem}.modal-head p{margin:4px 0 0;font-size:.88rem;opacity:.9}
+.modal-head.help{background:var(--ink)}
+.modal-body{padding:18px 20px 20px;display:flex;flex-direction:column;gap:14px}
+.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px;counter-reset:st}
+.steps li{display:grid;grid-template-columns:32px 1fr;gap:10px;align-items:start;counter-increment:st}
+.steps li::before{content:counter(st);width:32px;height:32px;border-radius:50%;background:var(--teal-soft);color:var(--teal);font-family:var(--f-display);font-weight:700;display:grid;place-items:center}
+.steps b{display:block}
+.steps .small{color:var(--muted)}
+.incident{border:2px solid var(--bad);background:var(--bad-soft);color:var(--bad);border-radius:12px;padding:12px 14px;font-size:.92rem;font-weight:600}
+.help-sec{border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.help-sec h3{display:flex;align-items:center;gap:8px}
+.dot{width:12px;height:12px;border-radius:4px;flex:none}
+.help-sec ol{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;font-size:.92rem}
+.help-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:12px;font-weight:600;color:var(--ink);cursor:pointer;box-shadow:var(--shadow)}
+.help-btn svg{width:20px;height:20px;color:var(--blue)}
+/* น้องสไลด์ */
+.guide-top{display:flex;gap:12px;align-items:flex-end;padding:20px 56px 0 16px;background:linear-gradient(180deg,var(--teal-soft),#fff);border-radius:18px 18px 0 0}
+.guide-top .bot{width:96px;flex:none}
+.guide-top .say{position:relative;background:#fff;border:2px solid var(--teal);border-radius:16px 16px 16px 4px;padding:10px 12px;font-size:.92rem;line-height:1.5;margin-bottom:40px}
+.guide-top .say b{font-family:var(--f-display);color:var(--teal);font-size:1.05rem;display:block}
+.bot{display:block;height:auto}
+.fab{position:fixed;right:calc(12px + env(safe-area-inset-right,0px));bottom:calc(12px + env(safe-area-inset-bottom,0px));display:flex;align-items:flex-end;gap:4px;z-index:20;pointer-events:none}
+.fab>*{pointer-events:auto}
+.fab-say{background:#fff;border:2px solid var(--teal);color:var(--ink);font-weight:600;font-size:.88rem;padding:7px 12px;border-radius:14px 14px 4px 14px;box-shadow:0 6px 18px rgba(16,42,67,.15);margin-bottom:52px;max-width:200px;cursor:pointer}
+.fab-bot{border:0;background:none;padding:0;cursor:pointer;width:76px}
+.fab-bot .bot{width:100%;filter:drop-shadow(0 6px 10px rgba(16,42,67,.22))}
+main{padding-bottom:140px!important}
+.chat{display:flex;flex-direction:column;gap:10px}
+.msg{display:flex;gap:8px;align-items:flex-end}
+.msg .av{width:40px;flex:none}
+.msg .txt{background:var(--teal-soft);border-radius:14px 14px 14px 4px;padding:10px 12px;font-size:.93rem;line-height:1.6;white-space:pre-line}
+.msg.me{justify-content:flex-end}
+.msg.me .txt{background:var(--blue);color:#fff;border-radius:14px 14px 4px 14px}
+.chips{display:flex;flex-direction:column;gap:6px}
+.chips h4{margin:6px 0 0;font-size:.8rem;color:var(--muted);font-weight:600;letter-spacing:.02em}
+.chip{text-align:left;border:1.5px solid var(--line);background:#fff;border-radius:12px;padding:9px 12px;font-size:.9rem;cursor:pointer;color:var(--ink)}
+.chip:hover{border-color:var(--teal);background:var(--teal-soft)}
+.call{display:inline-block;font-family:var(--f-mono);font-weight:600;color:var(--teal)}
+@media (prefers-reduced-motion:no-preference){
+  .bob{animation:bob 2.4s ease-in-out infinite}
+  .bot .wave{animation:wave 1.4s ease-in-out infinite;transform-box:view-box;transform-origin:34px 100px}
+  .bot .blink{animation:blink 4s infinite;transform-box:fill-box;transform-origin:center}
+  .fab-say{animation:pop .5s cubic-bezier(.3,1.6,.5,1) both .4s}
+}
+@keyframes bob{50%{transform:translateY(-6px)}}
+@keyframes wave{0%,100%{transform:rotate(0)}50%{transform:rotate(16deg)}}
+@keyframes blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+@keyframes pop{from{transform:scale(.6);opacity:0}to{transform:none;opacity:1}}
+/* photo evidence */
+.photo-box{display:flex;flex-direction:column;gap:8px}
+.photo-take{display:flex;align-items:center;justify-content:center;gap:10px;border:2px dashed var(--line);border-radius:12px;padding:18px;background:var(--field);color:var(--blue);font-weight:600;cursor:pointer;text-align:center}
+.photo-take svg{width:26px;height:26px}
+.photo-prev{display:flex;gap:12px;align-items:center}
+.photo-prev img{width:96px;height:96px;object-fit:cover;border-radius:10px;border:1px solid var(--line);flex:none}
+@media (max-width:420px){.brand h1{font-size:1.15rem}.big b{font-size:1.05rem}}
+@media (max-width:360px){.row2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header class="head"><div class="head-in">
+  <div class="brand">
+    <div class="mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="8" width="20" height="8" rx="1.5"/><path d="M8 8v8"/><circle cx="14.5" cy="12" r="2"/></svg></div>
+    <div style="min-width:0"><h1>ตาม Slide CBC</h1><div class="org">ห้องปฏิบัติการเทคนิคการแพทย์ โรงพยาบาลธรรมศาสตร์</div></div>
+  </div>
+  <div class="seg" role="group" aria-label="สลับมุมมอง">
+    <button id="mode-ward" aria-pressed="true">เจ้าหน้าที่</button>
+    <button id="mode-lab" aria-pressed="false">ภาพรวมห้องปฏิบัติการ</button>
+  </div>
+</div></header>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <symbol id="nong" viewBox="0 0 120 140">
+    <defs>
+      <linearGradient id="ng-shell" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#d5efec"/></linearGradient>
+      <linearGradient id="ng-visor" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#20456b"/><stop offset="1" stop-color="#0f2740"/></linearGradient>
+      <radialGradient id="ng-eye" cx=".5" cy=".4" r=".6"><stop offset="0" stop-color="#d9fffa"/><stop offset=".6" stop-color="#5ff0de"/><stop offset="1" stop-color="#22c3b1"/></radialGradient>
+    </defs>
+    <!-- floating shadow -->
+    <ellipse cx="60" cy="134" rx="24" ry="4" fill="#102a43" opacity=".12"/>
+    <!-- antenna: CBC tube -->
+    <path d="M60 22v-7" stroke="#16324f" stroke-width="3" stroke-linecap="round"/>
+    <rect x="54" y="2" width="12" height="15" rx="5" fill="#fff" stroke="#16324f" stroke-width="2.5"/>
+    <rect x="55.5" y="9" width="9" height="6.5" rx="3" fill="#e64a6b"/>
+    <rect x="52" y="0.5" width="16" height="6" rx="3" fill="#8e5bd6" stroke="#16324f" stroke-width="2"/>
+    <!-- right arm (resting) -->
+    <g><path d="M86 100 L97 116" stroke="#16324f" stroke-width="11" stroke-linecap="round"/><path d="M86 100 L97 116" stroke="#bfe7e3" stroke-width="6" stroke-linecap="round"/>
+      <circle cx="98" cy="118" r="6.5" fill="#0b7a75" stroke="#16324f" stroke-width="2.5"/></g>
+    <!-- left arm (waving from the shoulder) -->
+    <g class="wave"><path d="M34 100 L17 86" stroke="#16324f" stroke-width="11" stroke-linecap="round"/><path d="M34 100 L17 86" stroke="#bfe7e3" stroke-width="6" stroke-linecap="round"/>
+      <circle cx="14" cy="83" r="6.5" fill="#0b7a75" stroke="#16324f" stroke-width="2.5"/></g>
+    <!-- body -->
+    <rect x="32" y="88" width="56" height="40" rx="18" fill="url(#ng-shell)" stroke="#16324f" stroke-width="3"/>
+    <!-- chest: glass slide with a drop of blood -->
+    <rect x="44" y="101" width="32" height="13" rx="3" fill="#e7f0fb" stroke="#1f5fae" stroke-width="2"/>
+    <rect x="44" y="101" width="9" height="13" rx="2" fill="#1f5fae" opacity=".85"/>
+    <path d="M66 103.5c2.6 3.2 3.6 4.8 3.6 6a3.6 3.6 0 0 1-7.2 0c0-1.2 1-2.8 3.6-6z" fill="#e64a6b"/>
+    <!-- neck -->
+    <rect x="52" y="82" width="16" height="8" rx="3" fill="#0b7a75" stroke="#16324f" stroke-width="2.5"/>
+    <!-- head -->
+    <rect x="16" y="20" width="88" height="64" rx="28" fill="url(#ng-shell)" stroke="#16324f" stroke-width="3"/>
+    <path d="M30 30q10-6 24-6" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".9"/>
+    <!-- ears -->
+    <rect x="8" y="42" width="11" height="22" rx="5.5" fill="#0b7a75" stroke="#16324f" stroke-width="2.5"/>
+    <rect x="101" y="42" width="11" height="22" rx="5.5" fill="#0b7a75" stroke="#16324f" stroke-width="2.5"/>
+    <!-- face visor -->
+    <rect x="26" y="33" width="68" height="40" rx="18" fill="url(#ng-visor)"/>
+    <g class="blink"><ellipse cx="47" cy="50" rx="6.5" ry="7.5" fill="url(#ng-eye)"/><ellipse cx="73" cy="50" rx="6.5" ry="7.5" fill="url(#ng-eye)"/>
+      <circle cx="49.5" cy="47" r="2.2" fill="#fff"/><circle cx="75.5" cy="47" r="2.2" fill="#fff"/></g>
+    <path d="M53 61q7 6 14 0" fill="none" stroke="#5ff0de" stroke-width="3" stroke-linecap="round"/>
+    <ellipse cx="36" cy="62" rx="5" ry="3" fill="#ff8fb1" opacity=".75"/><ellipse cx="84" cy="62" rx="5" ry="3" fill="#ff8fb1" opacity=".75"/>
+</symbol></defs></svg>
+<main id="app"><div class="loading">กำลังโหลด…</div></main>
+<div class="fab" id="fab" hidden>
+  <div class="fab-say" id="fab-say" role="button" tabindex="0">สอบถามได้นะครับ 💬</div>
+  <button class="fab-bot" id="fab-bot" aria-label="เปิดผู้ช่วยน้องสไลด์"><svg class="bot bob" viewBox="0 0 120 140"><use href="#nong"/></svg></button>
+</div>
+
+<div class="scan-ov" id="scan-ov" hidden>
+  <div id="reader"></div>
+  <div class="msg" id="scan-msg">เล็งบาร์โค้ดให้อยู่ในกรอบ ถือนิ่งๆ</div>
+  <div class="row">
+    <label class="btn photo-btn" for="photo-in">ถ่ายรูปบาร์โค้ดแทน</label>
+    <button class="btn btn-ghost" id="scan-close">ปิด</button>
+  </div>
+  <input type="file" id="photo-in" accept="image/*" capture="environment" style="position:absolute;opacity:0;width:1px;height:1px">
+</div>
+
+<script>
+(function(){
+const TOKEN_KEY='cbcSlideToken', WARD_KEY='cbcLastWard';
+const STATUS={in:'ส่งใบตามแล้ว รอรับ',out:'รับสไลด์แล้ว'};
+let WARDS=[], ME=null, LATE_MIN=30, mode='ward', view='home', lastDone=null, labPin='', labRows=[], labFilter='in', labQ='';
+
+// ลิงก์ /exec ของ Apps Script (ตัวรับข้อมูลที่บันทึกลง Google Sheets)
+const API_URL='https://script.google.com/macros/s/AKfycbyqxxgojW1ClbxC3L49933YuOZxhVTChcOFa1aWwIeeKNhaBQT0Ettu6fheGU02S_Ex8g/exec';
+async function run(fn,...args){
+  let res;
+  try{res=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({fn,args}),redirect:'follow'})}
+  catch(e){throw new Error('เชื่อมต่อไม่ได้ ตรวจอินเทอร์เน็ตแล้วลองใหม่')}
+  let j;try{j=await res.json()}catch(e){throw new Error('ระบบตอบกลับผิดรูปแบบ ตรวจว่าอัปเดตโค้ด Apps Script และทำให้ใช้งานได้เป็นเวอร์ชันใหม่แล้ว')}
+  if(!j.ok)throw new Error(j.error||'เกิดข้อผิดพลาด');
+  return j.data;
+}
+const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
+const $=s=>document.querySelector(s);
+const app=$('#app');
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pill=st=>`<span class="pill st-${st}">${STATUS[st]||st}</span>`;
+const dur=m=>m<60?`${m} นาที`:`${Math.floor(m/60)} ชม. ${m%60} นาที`;
+const ago=ts=>dur(Math.max(0,Math.round((Date.now()-ts)/60000)));
+function toast(msg){const t=document.createElement('div');t.className='toast';t.setAttribute('role','status');t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),2600)}
+function busy(btn,on,label){if(!btn)return;btn.disabled=on;if(on){btn.dataset.l=btn.textContent;btn.textContent=label||'กำลังบันทึก…'}else if(btn.dataset.l)btn.textContent=btn.dataset.l}
+const camIcon='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 8v8M10 8v8M13 8v8M17 8v8"/></svg>';
+const icSend='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg>';
+const icRecv='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="8" width="20" height="8" rx="1.5"/><path d="M8 8v8"/><path d="M13 12l2 2 4-4"/></svg>';
+
+/* ---------- live camera scanner ---------- */
+let qr=null, scanTarget=null;
+const FORMATS=()=>window.Html5QrcodeSupportedFormats?[Html5QrcodeSupportedFormats.CODE_128,Html5QrcodeSupportedFormats.CODE_39,Html5QrcodeSupportedFormats.CODE_93,Html5QrcodeSupportedFormats.CODABAR,Html5QrcodeSupportedFormats.EAN_13,Html5QrcodeSupportedFormats.ITF,Html5QrcodeSupportedFormats.QR_CODE]:undefined;
+function gotCode(text){
+  if(!scanTarget)return;
+  scanTarget.value=String(text).trim();
+  scanTarget.dispatchEvent(new Event('input',{bubbles:true}));
+  if(navigator.vibrate)navigator.vibrate(80);
+  closeScanner();
+}
+async function openScanner(target){
+  scanTarget=target;
+  $('#scan-ov').hidden=false;$('#scan-msg').textContent='กำลังเปิดกล้อง…';
+  if(!window.Html5Qrcode){$('#scan-msg').textContent='โหลดตัวอ่านบาร์โค้ดไม่สำเร็จ ตรวจอินเทอร์เน็ตแล้วลองใหม่ หรือพิมพ์เลขเอง';return}
+  try{
+    qr=new Html5Qrcode('reader',{formatsToSupport:FORMATS(),verbose:false});
+    await qr.start({facingMode:'environment'},{fps:12,qrbox:(w,h)=>({width:Math.floor(w*0.85),height:Math.floor(Math.min(h,w)*0.45)})},gotCode,()=>{});
+    $('#scan-msg').textContent='เล็งบาร์โค้ดให้อยู่ในกรอบ ถือนิ่งๆ ห่างประมาณ 10–15 ซม.';
+  }catch(e){
+    $('#scan-msg').textContent='เปิดกล้องสดไม่ได้ ('+(e&&e.name||'ไม่ได้รับอนุญาต')+') กด "ถ่ายรูปบาร์โค้ดแทน" หรือปิดแล้วพิมพ์เลขเอง';
+  }
+}
+async function closeScanner(){
+  $('#scan-ov').hidden=true;
+  if(qr){try{if(qr.isScanning)await qr.stop();qr.clear()}catch(e){}qr=null}
+}
+$('#scan-close').onclick=closeScanner;
+$('#photo-in').addEventListener('change',async e=>{
+  const f=e.target.files[0];e.target.value='';if(!f)return;
+  $('#scan-msg').textContent='กำลังอ่านจากรูป…';
+  try{
+    if(qr&&qr.isScanning){await qr.stop()}
+    const r=qr||new Html5Qrcode('reader',{formatsToSupport:FORMATS(),verbose:false});
+    gotCode(await r.scanFile(f,false));
+  }catch(err){$('#scan-msg').textContent='อ่านบาร์โค้ดจากรูปไม่ได้ ถ่ายใหม่ให้ใกล้และชัดขึ้น หรือปิดแล้วพิมพ์เลขเอง'}
+});
+function scanField(id,label){return `<div class="field"><label for="${id}">${label}</label>
+  <div class="scanrow"><input class="input mono" id="${id}" type="text" inputmode="numeric" autocomplete="off" spellcheck="false" placeholder="สแกน หรือพิมพ์เลข">
+  <button type="button" class="cam" id="${id}-cam" aria-label="สแกนด้วยกล้อง">${camIcon}</button></div>
+  <div class="hint">กดปุ่มกล้องเพื่อสแกน หรือยิงด้วยเครื่องสแกน</div></div>`}
+function bindScan(id){document.getElementById(id+'-cam').onclick=()=>openScanner(document.getElementById(id))}
+
+/* ---------- ward combobox ---------- */
+function wardCombo(id,val){return `<div class="field"><label for="${id}">วอร์ด</label><div class="combo">
+  <input class="input" id="${id}" role="combobox" aria-expanded="false" aria-controls="${id}-list" autocomplete="off" placeholder="พิมพ์ค้นหา เช่น อายุร, ICU" value="${esc(val||'')}">
+  <ul class="combo-list" id="${id}-list" role="listbox" hidden></ul></div></div>`}
+function bindCombo(id){
+  const inp=document.getElementById(id),list=document.getElementById(id+'-list');let act=-1,items=[];
+  const draw=()=>{const q=inp.value.trim().toLowerCase();items=WARDS.filter(w=>w.toLowerCase().includes(q));
+    list.innerHTML=items.length?items.map((w,i)=>`<li role="option" data-w="${esc(w)}" aria-selected="${i===act}">${esc(w)}</li>`).join(''):'<li class="muted">ไม่พบวอร์ดนี้</li>';
+    list.hidden=false;inp.setAttribute('aria-expanded','true')};
+  const close=()=>{list.hidden=true;inp.setAttribute('aria-expanded','false');act=-1};
+  const pick=w=>{inp.value=w;close();inp.dispatchEvent(new Event('change'))};
+  inp.addEventListener('focus',()=>{inp.select();draw()});
+  inp.addEventListener('input',()=>{act=-1;draw()});
+  inp.addEventListener('keydown',e=>{if(e.key==='ArrowDown'){act=Math.min(act+1,items.length-1);draw();e.preventDefault()}
+    else if(e.key==='ArrowUp'){act=Math.max(act-1,0);draw();e.preventDefault()}
+    else if(e.key==='Enter'&&act>=0){pick(items[act]);e.preventDefault()}else if(e.key==='Escape')close()});
+  list.addEventListener('mousedown',e=>{const li=e.target.closest('li[data-w]');if(li){pick(li.dataset.w);e.preventDefault()}});
+  list.addEventListener('touchstart',e=>{const li=e.target.closest('li[data-w]');if(li){pick(li.dataset.w);e.preventDefault()}},{passive:false});
+  inp.addEventListener('blur',()=>setTimeout(close,150));
+}
+
+/* ---------- date + time of specimen ---------- */
+const p2=n=>String(n).padStart(2,'0');
+const isoDate=d=>`${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}`;
+// Sample No. 10 หลัก: หลัก 1–2 = วันที่, 3–4 = เดือน (ไม่มีปี ใช้ปีปัจจุบัน ถ้าเกินวันนี้ถือเป็นปีก่อน)
+function dateFromSample(s){
+  if(!/^\d{10}$/.test(s))return '';
+  const dd=+s.slice(0,2),mm=+s.slice(2,4);if(mm<1||mm>12||dd<1)return '';
+  const now=new Date();let d=new Date(now.getFullYear(),mm-1,dd);
+  if(d.getMonth()!==mm-1)return '';
+  if(d.getTime()-now.getTime()>86400000)d=new Date(now.getFullYear()-1,mm-1,dd);
+  return isoDate(d);
+}
+function dtField(id,label){return `<div class="field"><span class="lab">${label}</span>
+  <div class="dt"><input class="input" id="${id}-date" type="date" max="${isoDate(new Date())}" aria-label="วันที่ส่งตรวจ">
+  <input class="input mono" id="${id}-time" type="time" aria-label="เวลาส่งตรวจ"></div>
+  <div class="hint" id="${id}-hint">ถ้ากรอก Sample No. ระบบจะเติมวันที่ให้จากเลข 4 หลักแรก</div></div>`}
+function getSpec(id){const d=document.getElementById(id+'-date').value,t=document.getElementById(id+'-time').value;return d&&t?`${d}T${t}`:''}
+function bindSampleDate(sampleId,id){
+  const s=document.getElementById(sampleId),dIn=document.getElementById(id+'-date');
+  dIn.addEventListener('input',()=>{dIn.dataset.auto=''});
+  s.addEventListener('input',()=>{const iso=dateFromSample(s.value.trim());
+    if(iso&&(!dIn.value||dIn.dataset.auto)){dIn.value=iso;dIn.dataset.auto='1';dIn.dispatchEvent(new Event('change'))}});
+}
+/* กติกาช่วงเวลาตาม Slide — ต้องตรงกับ RULE ใน Code.gs */
+const RULE={lateCut:'20:00',normalEnd:'22:00',nextFrom:'08:00',nextTo:'14:00',extEnd:'08:00',extWard:/(^|[^A-Za-z])ER([^A-Za-z]|$)|ฉุกเฉิน|นอกเวลา/i};
+function at(day,hhmm){const [y,m,d]=day.split('-').map(Number),[H,M]=hhmm.split(':').map(Number);return new Date(y,m-1,d,H,M)}
+function followWindow(specIso,ward){
+  const [day,time]=specIso.split('T');const spec=at(day,time);
+  const n=new Date(spec.getFullYear(),spec.getMonth(),spec.getDate()+1);const next=isoDate(n);
+  const late=time>RULE.lateCut, ext=RULE.extWard.test(ward||'');
+  if(ext)return{from:spec,to:late?at(next,RULE.nextTo):at(next,RULE.extEnd),ext};
+  if(late)return{from:at(next,RULE.nextFrom),to:at(next,RULE.nextTo),ext};
+  return{from:spec,to:at(day,RULE.normalEnd),ext};
+}
+const fmtDT=d=>`${p2(d.getDate())}/${p2(d.getMonth()+1)}/${d.getFullYear()} ${p2(d.getHours())}:${p2(d.getMinutes())}`;
+function ruleHint(specIso,ward){
+  if(!specIso)return '';
+  const w=followWindow(specIso,ward),now=Date.now();
+  if(now>w.to)return `<div class="rule bad">เกินกำหนดการตาม Slide แล้ว (ตามได้ถึง ${fmtDT(w.to)})</div>`;
+  if(now<w.from)return `<div class="rule warn">ยังไม่ถึงเวลาตาม Slide ตามได้ ${fmtDT(w.from)} – ${fmtDT(w.to)}</div>`;
+  return `<div class="rule">ตามได้ถึง ${fmtDT(w.to)}${w.ext?' (เกณฑ์ ER / OPD นอกเวลา)':''}</div>`;
+}
+const hnField=id=>`<div class="field"><label for="${id}">HN</label><input class="input mono" id="${id}" type="text" inputmode="numeric" autocomplete="off" spellcheck="false"></div>`;
+const backHead=t=>`<div><button class="linkbtn" id="back">← กลับ</button><h2>${t}</h2></div>`;
+const meBox=l=>`<div class="field"><span class="lab">${l}</span><div class="input static">${esc(ME.first)} ${esc(ME.last)} (${esc(ME.nick)})</div></div>`;
+const errBox=m=>`<div class="alert bad">${esc(m)}</div>`;
+const sampleTxt=s=>s?esc(s):'<span class="muted">ยังไม่มี Sample No.</span>';
+
+/* ---------- popup windows ---------- */
+function openModal(html,cls){
+  const m=document.createElement('div');m.className='modal';m.setAttribute('role','dialog');m.setAttribute('aria-modal','true');
+  m.innerHTML=`<div class="modal-box">${html}<button class="modal-x" aria-label="ปิด">✕</button></div>`;
+  const close=()=>{m.remove();document.removeEventListener('keydown',esc_)};
+  const esc_=e=>{if(e.key==='Escape')close()};
+  m.querySelector('.modal-x').onclick=close;document.addEventListener('keydown',esc_);
+  m.querySelectorAll('[data-close]').forEach(b=>b.onclick=close);
+  document.body.appendChild(m);m.querySelector('.modal-x').focus();
+}
+const BOT='<svg class="bot" viewBox="0 0 120 140" aria-hidden="true"><use href="#nong"/></svg>';
+// หน้าต่างแนะนำวิธีตาม Slide (ขึ้นทุกครั้งที่เปิดแอปหลังเข้าสู่ระบบ) — น้องสไลด์ยืนอธิบาย
+function showGuide(){
+  openModal(`<div class="guide-top"><div class="bot">${BOT}</div>
+    <div class="say"><b>สวัสดีครับ ผมน้องสไลด์</b>ก่อนเริ่มใช้งาน ขออนุญาตแนะนำวิธีการตาม Slide นะครับ</div></div>
+  <div class="modal-body">
+    <ol class="steps">
+      <li><div><b>กรุณาหาสไลด์ในตะกร้าก่อนครับ</b><span class="small">ตรวจดู HN และ Sample No. ให้ตรงกับใบตาม</span></div></li>
+      <li><div><b>หากหาไม่พบ กรุณาวางใบตาม Slide ไว้ในตะกร้า</b><span class="small">แล้วกด "บันทึกส่งใบตามสไลด์" ในแอปครับ</span></div></li>
+      <li><div><b>รอประมาณ 30 นาที</b><span class="small">แล้วกลับมาหาสไลด์ในตะกร้าอีกครั้งครับ</span></div></li>
+      <li><div><b>เมื่อพบสไลด์แล้ว กรุณากด "บันทึกรับสไลด์" ในแอป</b><span class="small">ทุกครั้งก่อนนำสไลด์ออกไปครับ</span></div></li>
+    </ol>
+    <div class="incident">หากไม่ปฏิบัติตามขั้นตอนนี้ จะมีการเขียนรายงาน Incident Report ไปยังต้นสังกัดครับ</div>
+    <div class="small muted" style="text-align:center">มีข้อสงสัย กดที่น้องสไลด์มุมขวาล่างได้ตลอดเลยครับ</div>
+    <button class="btn btn-teal btn-block" data-close>รับทราบครับ/ค่ะ</button>
+  </div>`);
+}
+// วิธีใช้งานแอป 3 หัวข้อ
+function showHelp(){
+  openModal(`<div class="modal-head help"><h2>วิธีใช้งานแอปเบื้องต้น</h2><p>ตาม Slide CBC</p></div>
+  <div class="modal-body">
+    <section class="help-sec"><h3><span class="dot" style="background:var(--teal)"></span>1. บันทึกส่งใบตามสไลด์</h3>
+      <ol><li>หาสไลด์ในตะกร้าก่อน ถ้าไม่เจอให้วางใบตาม Slide ในตะกร้า</li>
+      <li>กดปุ่มสีเขียว <b>บันทึกส่งใบตามสไลด์</b></li>
+      <li>กรอก <b>HN</b> และ<b>วันที่ เวลาส่งตรวจ</b> (บังคับ)</li>
+      <li><b>Sample No.</b> ถ้ามี กดปุ่มกล้องสแกนบาร์โค้ด ระบบจะเติมวันที่ส่งตรวจให้</li>
+      <li>เลือก<b>วอร์ด</b> ระบบจะบอกว่าตามได้ถึงเมื่อไหร่</li>
+      <li>ถ้าต้องการ กด<b>ถ่ายภาพหลักฐาน</b> ใบตามที่วางในตะกร้า (ไม่บังคับ)</li>
+      <li>กด <b>ยืนยันบันทึกส่งใบตาม</b> แล้วกลับมาอีกประมาณ 30 นาที</li></ol>
+      <div class="small muted">ถ้าขึ้นเตือนว่าส่งใบตามแล้ว ไม่ต้องบันทึกซ้ำ ถ้าขึ้นว่าเกินกำหนดหรือยังไม่ถึงเวลา จะบันทึกไม่ได้</div></section>
+    <section class="help-sec"><h3><span class="dot" style="background:var(--blue)"></span>2. บันทึกรับสไลด์</h3>
+      <ol><li>เจอสไลด์ในตะกร้าแล้ว กดปุ่มสีน้ำเงิน <b>บันทึกรับสไลด์</b></li>
+      <li>สแกน <b>Sample No.</b> จากสไลด์ กรอก <b>HN</b> และ<b>วันเวลาส่งตรวจ</b> ให้ครบ</li>
+      <li>กด <b>ค้นหาใบตาม</b> ตรวจวอร์ด HN และ Sample No. ให้ตรงกับสไลด์</li>
+      <li>กด <b>ยืนยันรับสไลด์</b> ก่อนนำสไลด์ไปทุกครั้ง</li></ol>
+      <div class="small muted">ถ้าไม่พบใบตาม และเป็นสไลด์ที่แพทย์ขอ include ให้ใช้ปุ่มสีม่วง</div></section>
+    <section class="help-sec"><h3><span class="dot" style="background:var(--violet)"></span>3. บันทึกรับ Slide include</h3>
+      <ol><li>ใช้กับสไลด์ที่แพทย์ขอ include ซึ่งห้องปฏิบัติการวางไว้ในตะกร้าแล้ว ไม่ต้องส่งใบตาม</li>
+      <li>กดปุ่มสีม่วง <b>บันทึกรับ Slide include</b></li>
+      <li>สแกน <b>Sample No.</b> กรอก <b>HN</b> และเลือก<b>วอร์ด</b></li>
+      <li>กด <b>ยืนยันรับ Slide include</b> ก่อนนำสไลด์ไป</li></ol></section>
+    <button class="btn btn-ghost btn-block" id="see-guide">ดูวิธีการตาม Slide</button>
+    <button class="btn btn-teal btn-block" data-close>ปิด</button>
+  </div>`);
+  $('#see-guide').onclick=()=>{document.querySelector('.modal').remove();showGuide()};
+}
+/* ---------- ผู้ช่วยน้องสไลด์ (กดเลือกคำถาม ไม่ใช้ AI) ---------- */
+const CALL='<span class="call">8133</span>';
+const FAQ=[
+ {g:'การตาม Slide',q:'ตาม Slide ต้องทำอะไรบ้าง',a:'ขั้นตอนการตาม Slide มีดังนี้ครับ\n1. หาสไลด์ในตะกร้าก่อน\n2. หากหาไม่พบ วางใบตาม Slide ไว้ในตะกร้า แล้วกด "บันทึกส่งใบตามสไลด์" ในแอป\n3. รอประมาณ 30 นาที แล้วกลับมาหาอีกครั้ง\n4. เมื่อพบสไลด์แล้ว กด "บันทึกรับสไลด์" ในแอปทุกครั้งก่อนนำออกไปครับ',n:[2,3,4]},
+ {g:'การตาม Slide',q:'หาสไลด์ในตะกร้าไม่เจอ ทำอย่างไร',a:'กรุณาวางใบตาม Slide ไว้ในตะกร้า แล้วกดปุ่มสีเขียว "บันทึกส่งใบตามสไลด์" ในแอปครับ\nจากนั้นรอประมาณ 30 นาที แล้วกลับมาหาในตะกร้าอีกครั้งนะครับ',n:[3,6,7]},
+ {g:'การตาม Slide',q:'ส่งใบตามแล้ว ต้องรอนานเท่าไร',a:'รอประมาณ 30 นาทีครับ แล้วกลับมาหาสไลด์ในตะกร้าอีกครั้ง\nหากรอนานแล้วยังไม่พบ สอบถามได้ที่ '+CALL+' ครับ',n:[4,13]},
+ {g:'การตาม Slide',q:'ตามได้ถึงกี่โมง',a:'นับจากวันเวลาส่งตรวจนะครับ\n\nวอร์ดทั่วไป\n• ส่งตรวจถึง 20:00 น. ตามได้ถึง 22:00 น. ของวันเดียวกัน\n• ส่งตรวจหลัง 20:00 น. ตามได้ 08:00–14:00 น. ของวันถัดไป\n\nER และ OPD นอกเวลา\n• ส่งตรวจถึง 20:00 น. ตามได้ถึง 08:00 น. ของวันถัดไป\n• ส่งตรวจหลัง 20:00 น. ตามได้ถึง 14:00 น. ของวันถัดไป\n\nเมื่อกรอกวันเวลาส่งตรวจและวอร์ดแล้ว แอปจะบอกให้ทันทีครับ',n:[10,11]},
+ {g:'การตาม Slide',q:'Slide include คืออะไร',a:'Slide include คือสไลด์ที่แพทย์ขอไว้ ห้องปฏิบัติการจะวางไว้ในตะกร้าให้เลยครับ ไม่ต้องส่งใบตาม\nเมื่อพบแล้ว กดปุ่มสีม่วง "บันทึกรับ Slide include" กรอก Sample No., HN และวอร์ด แล้วกดยืนยันก่อนนำออกไปนะครับ',n:[1,13]},
+ {g:'การใช้งานแอป',q:'ไม่มี Sample No. ส่งใบตามได้ไหม',a:'ได้ครับ ตอนส่งใบตาม กรอกเพียง HN และวันเวลาส่งตรวจก็บันทึกได้\nแต่ตอนรับสไลด์ ต้องกรอก Sample No. จากสไลด์ ร่วมกับ HN และวันเวลาส่งตรวจให้ครบทุกครั้งนะครับ',n:[7,8]},
+ {g:'การใช้งานแอป',q:'ดูวันเวลาส่งตรวจจากไหน',a:'ดูวันเวลาส่งตรวจได้จากใบตาม Slide ครับ\nหากในใบตามไม่มี กรุณาสอบถามพยาบาล และกรอกข้อมูลให้ครบทุกช่องก่อนบันทึกนะครับ',n:[6,4]},
+ {g:'การใช้งานแอป',q:'สแกนบาร์โค้ดไม่ติด ทำอย่างไร',a:'ลองวิธีนี้ครับ\n• ถือมือถือให้นิ่ง ห่างบาร์โค้ดประมาณ 10–15 ซม. และให้มีแสงเพียงพอ\n• กด "ถ่ายรูปบาร์โค้ดแทน" แล้วถ่ายให้ชัด\n• หากยังไม่ได้ ปิดกล้องแล้วพิมพ์เลขเองได้ครับ\nหากกล้องไม่เปิดเลย กรุณาเปิดแอปด้วย Chrome และกดอนุญาตให้ใช้กล้องนะครับ',n:[6]},
+ {g:'การใช้งานแอป',q:'ต้องถ่ายภาพหลักฐานไหม',a:'ไม่บังคับครับ แต่แนะนำให้ถ่ายภาพใบตามที่วางในตะกร้าไว้เป็นหลักฐาน จะช่วยยืนยันได้ว่าได้ส่งใบตามแล้วครับ',n:[2]},
+ {g:'แจ้งเตือนและปัญหา',q:'ขึ้น "เกินกำหนดการตาม Slide"',a:'ขออภัยครับ สไลด์นี้เกินกำหนดเวลาการตามแล้ว จึงไม่สามารถตามได้\nหากมีข้อสงสัย สอบถามได้ที่ '+CALL+' ครับ',n:[4]},
+ {g:'แจ้งเตือนและปัญหา',q:'ขึ้น "ยังไม่ถึงเวลาตาม Slide"',a:'สไลด์ที่ส่งตรวจหลัง 20:00 น. ยังตามในคืนนี้ไม่ได้ครับ\nกรุณามาตามใหม่ช่วง 08:00–14:00 น. ของวันถัดไป\nหากมีข้อสงสัย สอบถามได้ที่ '+CALL+' ครับ',n:[4]},
+ {g:'แจ้งเตือนและปัญหา',q:'ขึ้นว่า "ถูกส่งใบตามมาแล้ว"',a:'แปลว่าสไลด์นี้มีผู้ส่งใบตามไว้แล้วครับ ไม่ต้องบันทึกซ้ำ\nกรุณาดูรายละเอียดในกล่องสีส้ม แล้วไปหาสไลด์ในตะกร้าได้เลยครับ\nหากแอปแจ้งว่า "อาจซ้ำ" และตรวจแล้วเป็นการส่งตรวจคนละครั้งจริง กด "เป็นคนละรายการ บันทึกต่อ" ได้ครับ',n:[3]},
+ {g:'แจ้งเตือนและปัญหา',q:'รับสไลด์แล้วขึ้น "ไม่พบใบตาม"',a:'กรุณาตรวจ HN และวันเวลาส่งตรวจอีกครั้งครับ\n• หากเป็นสไลด์ที่แพทย์ขอ include ให้ใช้ปุ่มสีม่วง "บันทึกรับ Slide include"\n• หากยังไม่แน่ใจ สอบถามได้ที่ '+CALL+' ครับ',n:[5,14]},
+ {g:'แจ้งเตือนและปัญหา',q:'Sample No. ไม่ตรงกับใบตาม',a:'กรุณาอย่าเพิ่งนำสไลด์ไปครับ อาจหยิบสไลด์ผิดใบ\nตรวจ Sample No. และ HN บนสไลด์อีกครั้ง หากยังไม่ตรง สอบถามได้ที่ '+CALL+' ครับ',n:[13]},
+ {g:'แจ้งเตือนและปัญหา',q:'เปลี่ยนมือถือ หรือแอปจำชื่อไม่ได้',a:'ไม่ต้องลงทะเบียนใหม่ครับ กด "เคยลงทะเบียนแล้ว แต่เปลี่ยนเครื่อง" แล้วกรอกรหัสพนักงานกับชื่อจริงที่ลงทะเบียนไว้ได้เลยครับ',n:[1]},
+ {g:'แจ้งเตือนและปัญหา',q:'ไม่ทำตามขั้นตอน จะเป็นอย่างไร',a:'หากไม่ปฏิบัติตามขั้นตอนการตาม Slide เช่น นำสไลด์ไปโดยไม่ได้บันทึกรับในแอป จะมีการเขียนรายงาน Incident Report ไปยังต้นสังกัดครับ\nรบกวนบันทึกในแอปทุกครั้งนะครับ ขอบคุณครับ 🙏',n:[1]}
+];
+function chipsHtml(list){return `<div class="chips">${list.map(i=>`<button class="chip" data-q="${i}">${esc(FAQ[i].q)}</button>`).join('')}</div>`}
+function allChips(){let g='',h='';FAQ.forEach((f,i)=>{if(f.g!==g){g=f.g;h+=`<h4>${esc(g)}</h4>`}h+=`<button class="chip" data-q="${i}">${esc(f.q)}</button>`});return `<div class="chips">${h}</div>`}
+function openAssistant(){
+  openModal(`<div class="guide-top"><div class="bot">${BOT}</div><div class="say"><b>น้องสไลด์ยินดีช่วยครับ</b>กดเลือกคำถามด้านล่างได้เลยครับ</div></div>
+    <div class="modal-body"><div class="chat" id="chat"></div><div id="chips">${allChips()}</div></div>`);
+  const chat=$('#chat'),chips=$('#chips');
+  const ask=i=>{const f=FAQ[i];
+    chat.insertAdjacentHTML('beforeend',`<div class="msg me"><div class="txt">${esc(f.q)}</div></div>
+      <div class="msg"><div class="av">${BOT}</div><div class="txt">${esc(f.a).replace(/&lt;span class=&quot;call&quot;&gt;8133&lt;\/span&gt;/g,CALL)}</div></div>`);
+    const next=(f.n||[]).map(x=>x-1).filter(x=>x!==i);
+    chips.innerHTML=(next.length?'<div class="chips"><h4>คำถามที่เกี่ยวข้อง</h4></div>'+chipsHtml(next):'')+'<div class="chips" style="margin-top:6px"><button class="chip" data-all="1">ดูคำถามทั้งหมด</button></div>';
+    bindChips();chat.lastElementChild.scrollIntoView({behavior:'smooth',block:'start'})};
+  const bindChips=()=>{chips.querySelectorAll('[data-q]').forEach(b=>b.onclick=()=>ask(+b.dataset.q));
+    const all=chips.querySelector('[data-all]');if(all)all.onclick=()=>{chips.innerHTML=allChips();bindChips()}};
+  bindChips();
+}
+const SAYS=['สอบถามได้นะครับ 💬','หาสไลด์ไม่เจอ ถามน้องได้ครับ','มีอะไรให้ช่วยไหมครับ'];let sayI=0;
+$('#fab-bot').onclick=openAssistant;$('#fab-say').onclick=openAssistant;
+$('#fab-say').onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openAssistant()}};
+setInterval(()=>{sayI=(sayI+1)%SAYS.length;$('#fab-say').textContent=SAYS[sayI]},4000);
+let guideShown=false;
+const icHelp='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>';
+const icCam='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>';
+
+/* ---------- photo evidence ---------- */
+const REQUIRE_PHOTO=false; // ต้องตรงกับ Code.gs
+// ย่อรูปให้ด้านยาวไม่เกิน 1280px แล้วแปลงเป็น JPEG (ประมาณ 150–300 KB)
+function shrinkPhoto(file){return new Promise((res,rej)=>{
+  const url=URL.createObjectURL(file),img=new Image();
+  img.onload=()=>{const k=Math.min(1,1280/Math.max(img.width,img.height));
+    const c=document.createElement('canvas');c.width=Math.round(img.width*k);c.height=Math.round(img.height*k);
+    c.getContext('2d').drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(url);res(c.toDataURL('image/jpeg',0.72))};
+  img.onerror=()=>{URL.revokeObjectURL(url);rej(new Error('อ่านรูปไม่ได้ ถ่ายใหม่อีกครั้ง'))};
+  img.src=url;})}
+function photoField(id){return `<div class="field"><span class="lab">ถ่ายภาพหลักฐานการส่งใบตาม${REQUIRE_PHOTO?'':' <span class="opt">(ถ้ามี)</span>'}</span>
+  <div class="photo-box" id="${id}-box"><label class="photo-take" for="${id}">${icCam}<span>แตะเพื่อถ่ายภาพใบตามที่วางในตะกร้า</span></label></div>
+  <input type="file" id="${id}" accept="image/*" capture="environment" style="position:absolute;opacity:0;width:1px;height:1px"></div>`}
+function bindPhoto(id,onChange){
+  const inp=document.getElementById(id),box=document.getElementById(id+'-box');
+  inp.addEventListener('change',async()=>{const f=inp.files[0];inp.value='';if(!f)return;
+    box.innerHTML='<div class="muted small">กำลังเตรียมรูป…</div>';
+    try{const data=await shrinkPhoto(f);onChange(data);
+      box.innerHTML=`<div class="photo-prev"><img src="${data}" alt="ภาพหลักฐานการส่งใบตาม"><div><div class="flag ok">ถ่ายภาพแล้ว</div><label class="linkbtn" for="${id}" style="display:inline-block;margin-top:6px">ถ่ายใหม่</label></div></div>`}
+    catch(e){onChange('');box.innerHTML=`<div class="alert bad">${esc(e.message)}</div><label class="photo-take" for="${id}">${icCam}<span>ถ่ายใหม่</span></label>`}});
+}
+
+/* ---------- staff views ---------- */
+function render(){
+  $('#mode-ward').setAttribute('aria-pressed',mode==='ward');$('#mode-lab').setAttribute('aria-pressed',mode==='lab');
+  if(mode==='lab'){$('#fab').hidden=true;return labPin?renderLab():vPin()}
+  if(!ME&&view!=='login')view='register';
+  $('#fab').hidden=!ME;
+  ({register:vRegister,login:vLogin,home:vHome,checkin:vIn,checkout:vOut,include:vInc,done:vDone})[view]();
+  window.scrollTo(0,0);
+}
+function vRegister(){
+  app.innerHTML=`<div class="col"><section class="panel">
+    <div><h2>ลงทะเบียนครั้งแรก</h2><p class="muted small" style="margin:4px 0 0">กรอกครั้งเดียว เครื่องนี้จะจำชื่อคุณไว้</p></div>
+    <form id="f" class="form" novalidate>
+      <div class="field"><label for="r-id">รหัสพนักงาน</label><input class="input mono" id="r-id" type="text" inputmode="numeric" autocomplete="off"></div>
+      <div class="row2"><div class="field"><label for="r-first">ชื่อ</label><input class="input" id="r-first"></div>
+      <div class="field"><label for="r-last">นามสกุล</label><input class="input" id="r-last"></div></div>
+      <div class="field"><label for="r-nick">ชื่อเล่น</label><input class="input" id="r-nick"></div>
+      <div id="err"></div>
+      <button class="btn btn-teal btn-block" type="submit">ลงทะเบียนและเริ่มใช้งาน</button>
+    </form>
+    <button class="linkbtn" id="to-login">เคยลงทะเบียนแล้ว แต่เปลี่ยนเครื่อง</button></section></div>`;
+  $('#to-login').onclick=()=>{view='login';render()};
+  $('#f').onsubmit=async e=>{e.preventDefault();const b=e.target.querySelector('button[type=submit]');
+    const v=k=>document.getElementById('r-'+k).value.trim();
+    busy(b,true);
+    try{const r=await run('apiRegister',{id:v('id'),first:v('first'),last:v('last'),nick:v('nick')});
+      store.set(TOKEN_KEY,r.token);ME=r.me;view='home';render();toast('ลงทะเบียนแล้ว ยินดีต้อนรับ '+ME.nick)}
+    catch(err){$('#err').innerHTML=errBox(err.message);busy(b,false)}};
+}
+function vLogin(){
+  app.innerHTML=`<div class="col"><section class="panel"><h2>เข้าใช้บนเครื่องใหม่</h2>
+   <form id="f" class="form" novalidate>
+   <div class="field"><label for="l-id">รหัสพนักงาน</label><input class="input mono" id="l-id" type="text" inputmode="numeric" autocomplete="off"></div>
+   <div class="field"><label for="l-first">ชื่อจริง (ตามที่ลงทะเบียนไว้)</label><input class="input" id="l-first"></div>
+   <div id="err"></div><button class="btn btn-teal btn-block" type="submit">เข้าใช้งาน</button></form>
+   <button class="linkbtn" id="back">กลับไปลงทะเบียนใหม่</button></section></div>`;
+  $('#back').onclick=()=>{view='register';render()};
+  $('#f').onsubmit=async e=>{e.preventDefault();const b=e.target.querySelector('button[type=submit]');busy(b,true,'กำลังตรวจสอบ…');
+    try{const r=await run('apiLogin',$('#l-id').value,$('#l-first').value);store.set(TOKEN_KEY,r.token);ME=r.me;view='home';render();toast('สวัสดี '+ME.nick)}
+    catch(err){$('#err').innerHTML=errBox(err.message);busy(b,false)}};
+}
+function vHome(){
+  app.innerHTML=`<div class="col">
+   <section class="panel"><div class="me"><div class="me-info"><div class="avatar">${esc(String(ME.nick).slice(0,2))}</div>
+     <div style="min-width:0"><b>${esc(ME.first)} ${esc(ME.last)} (${esc(ME.nick)})</b><div class="small muted">รหัส <span class="mono">${esc(ME.id)}</span></div></div></div>
+     <button class="linkbtn" id="logout">ไม่ใช่ฉัน</button></div></section>
+   <div class="big-actions">
+     <button class="big send" id="go-in">${icSend}<b>บันทึกส่งใบตามสไลด์</b><span>มาส่งใบตาม แล้วกลับมารับภายหลัง</span></button>
+     <button class="big recv" id="go-out">${icRecv}<b>บันทึกรับสไลด์</b><span>หยิบสไลด์ที่ส่งใบตามไว้</span></button>
+     <button class="big inc" id="go-inc">${icRecv}<span class="t"><b>บันทึกรับ Slide include</b><span>สไลด์ที่หมอขอ include วางในตะกร้า ไม่ต้องส่งใบตาม</span></span></button>
+   </div>
+   <button class="help-btn" id="go-help">${icHelp}วิธีใช้งานแอปเบื้องต้น</button>
+   <section class="panel"><div class="me"><h3>รายการล่าสุดของฉัน</h3><button class="linkbtn" id="refresh">รีเฟรช</button></div>
+    <div class="mylist" id="mylist"><div class="muted small">กำลังโหลด…</div></div></section></div>`;
+  $('#logout').onclick=()=>{store.del(TOKEN_KEY);ME=null;view='login';render()};
+  $('#go-in').onclick=()=>{view='checkin';render()};
+  $('#go-out').onclick=()=>{view='checkout';render()};
+  $('#go-inc').onclick=()=>{view='include';render()};
+  $('#go-help').onclick=showHelp;
+  if(!guideShown){guideShown=true;showGuide()}
+  const load=async()=>{try{const rows=await run('apiMine',store.get(TOKEN_KEY));
+    $('#mylist').innerHTML=rows.length?rows.map(r=>`<div class="it"><div style="min-width:0"><div class="mono">HN ${esc(r.hn)}${r.include?'<span class="tag-inc">Include</span>':''}</div><div class="small muted">Sample ${sampleTxt(r.sample)} · ${esc(r.ward)} · ส่งตรวจ ${esc(r.specAt||'–')}</div></div>${pill(r.status)}</div>`).join(''):'<div class="muted small">ยังไม่มีรายการ เมื่อบันทึกส่งใบตามหรือรับสไลด์ รายการจะขึ้นที่นี่</div>'}
+    catch(err){$('#mylist').innerHTML=errBox(err.message)}};
+  $('#refresh').onclick=load;load();
+}
+
+/* ส่งใบตามสไลด์: บังคับ HN + วันเวลาส่งตรวจ + วอร์ด, Sample No. ไม่บังคับ */
+function hardCard(r){
+  return `<div class="dupcard" role="alert"><h3>Sample No. ของคนไข้ HN นี้ถูกส่งใบตามมาแล้ว</h3>
+    <div class="small">ไม่ต้องบันทึกซ้ำ</div>
+    <dl class="kv"><dt>HN</dt><dd class="mono">${esc(r.hn)}</dd><dt>Sample No.</dt><dd class="mono">${sampleTxt(r.sample)}</dd>
+    <dt>วอร์ด</dt><dd>${esc(r.ward)}</dd><dt>วันเวลาส่งตรวจ</dt><dd>${esc(r.specAt||'–')}</dd>
+    <dt>ส่งใบตามโดย</dt><dd>${esc(r.reqName)}</dd><dt>เวลาส่งใบตาม</dt><dd>${esc(r.reqAt)} <span class="small">(${ago(r.reqTs)}ที่แล้ว)</span></dd>
+    <dt>สถานะ</dt><dd>${r.status==='out'?`รับสไลด์แล้ว โดย ${esc(r.recvName)} เมื่อ ${esc(r.recvAt)}`:'ยังไม่ได้รับสไลด์'}</dd></dl></div>`;
+}
+function softCard(recs,withBtn){
+  return `<div class="dupcard" role="alert"><h3>HN นี้มีใบตามที่วันเวลาส่งตรวจใกล้กันอยู่แล้ว</h3>
+    <div class="small">อาจเป็นการส่งใบตามซ้ำ ตรวจรายการด้านล่างก่อน</div>
+    ${recs.slice(0,3).map(r=>`<dl class="kv"><dt>วันเวลาส่งตรวจ</dt><dd>${esc(r.specAt||'–')}</dd><dt>Sample No.</dt><dd class="mono">${sampleTxt(r.sample)}</dd>
+      <dt>วอร์ด</dt><dd>${esc(r.ward)}</dd><dt>ส่งใบตามโดย</dt><dd>${esc(r.reqName)} · ${esc(r.reqAt)}</dd><dt>สถานะ</dt><dd>${STATUS[r.status]}</dd></dl>`).join('<hr style="border:0;border-top:1px solid rgba(0,0,0,.08);width:100%;margin:2px 0">')}
+    ${withBtn?'<button type="button" class="btn btn-ghost" id="force">เป็นคนละรายการ บันทึกต่อ</button>':''}</div>`;
+}
+function vIn(){
+  app.innerHTML=`<div class="col"><section class="panel">${backHead('บันทึกส่งใบตามสไลด์')}
+    <form id="f" class="form" novalidate>
+      ${hnField('q-hn')}
+      ${dtField('q','วันที่และเวลาส่งตรวจ')}
+      ${scanField('q-sample','Sample No. <span class="opt">(ถ้ามี)</span>')}
+      <div id="dup"></div>
+      ${wardCombo('q-ward',store.get(WARD_KEY)||'')}
+      <div id="q-rule"></div>
+      ${photoField('q-photo')}
+      ${meBox('ผู้ส่งใบตาม')}
+      <div class="hint">เวลาส่งใบตามจะบันทึกให้อัตโนมัติเมื่อกดยืนยัน</div>
+      <div id="err"></div>
+      <button class="btn btn-teal btn-block" type="submit">ยืนยันบันทึกส่งใบตาม</button>
+    </form></section></div>`;
+  bindScan('q-sample');bindCombo('q-ward');bindSampleDate('q-sample','q');
+  let photo='';bindPhoto('q-photo',d=>{photo=d;if(d)$('#err').innerHTML=''});
+  $('#back').onclick=()=>{view='home';render()};
+  const sIn=$('#q-sample'),hIn=$('#q-hn');let seq=0,timer=null;
+  const data=force=>({hn:hIn.value.trim(),sample:sIn.value.trim(),specAt:getSpec('q'),ward:$('#q-ward').value.trim(),force:!!force,photo});
+  const check=async()=>{const d=data(),box=$('#dup');
+    if(!d.hn||(!d.sample&&!d.specAt)){box.innerHTML='';return}
+    const my=++seq;let r;try{r=await run('apiPrecheck',store.get(TOKEN_KEY),{hn:d.hn,sample:d.sample,specAt:d.specAt})}catch(e){return}
+    if(my!==seq)return;
+    box.innerHTML=r.hard?hardCard(r.hard):r.soft.length?softCard(r.soft,false):'';
+    if((r.hard||r.soft.length)&&navigator.vibrate)navigator.vibrate([120,80,120]);};
+  const later=()=>{clearTimeout(timer);timer=setTimeout(check,600)};
+  const showRule=()=>{$('#q-rule').innerHTML=ruleHint(getSpec('q'),$('#q-ward').value.trim())};
+  ['q-hn','q-sample','q-date','q-time'].forEach(id=>{const el=document.getElementById(id);el.addEventListener('input',later);el.addEventListener('change',later)});
+  ['q-date','q-time','q-ward','q-sample'].forEach(id=>{const el=document.getElementById(id);el.addEventListener('input',showRule);el.addEventListener('change',showRule)});
+  sIn.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('#q-ward').focus()}});
+  const submit=async(force,b)=>{$('#err').innerHTML='';
+    if(REQUIRE_PHOTO&&!photo){$('#err').innerHTML=errBox('ถ่ายภาพหลักฐานการส่งใบตามก่อนบันทึก');$('#q-photo-box').scrollIntoView({behavior:'smooth',block:'center'});return}
+    busy(b,true);
+    try{const r=await run('apiCheckIn',store.get(TOKEN_KEY),data(force));
+      if(r.dup==='hard'){$('#dup').innerHTML=hardCard(r.rec);$('#dup').scrollIntoView({behavior:'smooth',block:'center'});busy(b,false);return}
+      if(r.dup==='soft'){$('#dup').innerHTML=softCard(r.recs,true);$('#dup').scrollIntoView({behavior:'smooth',block:'center'});busy(b,false);
+        $('#force').onclick=()=>submit(true,$('#force'));return}
+      store.set(WARD_KEY,r.ward);lastDone={kind:'in',r};view='done';render()}
+    catch(err){$('#err').innerHTML=errBox(err.message);busy(b,false)}};
+  $('#f').onsubmit=e=>{e.preventDefault();submit(false,e.target.querySelector('button[type=submit]'))};
+}
+
+/* รับสไลด์: บังคับ Sample No. + HN + วันเวลาส่งตรวจ */
+function vOut(){
+  app.innerHTML=`<div class="col"><section class="panel">${backHead('บันทึกรับสไลด์')}
+    <form id="f" class="form" novalidate>
+      ${scanField('v-sample','Sample No.')}
+      ${hnField('v-hn')}
+      ${dtField('v','วันที่และเวลาส่งตรวจ')}
+      <div id="err"></div>
+      <button class="btn btn-blue btn-block" type="submit">ค้นหาใบตาม</button>
+    </form>
+    <div id="v-card" class="form"></div></section></div>`;
+  bindScan('v-sample');bindSampleDate('v-sample','v');
+  $('#back').onclick=()=>{view='home';render()};
+  $('#v-sample').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('#v-hn').focus()}});
+  const data=()=>({sample:$('#v-sample').value.trim(),hn:$('#v-hn').value.trim(),specAt:getSpec('v')});
+  const card=(r,i,d)=>`<div class="check ${r.sampleOk&&r.specOk?'ok':''}">
+      <div class="me"><span class="small muted">ใบตามที่พบ</span>${pill(r.status)}</div>
+      <div class="ward-big">${esc(r.ward)}</div>
+      <dl class="kv"><dt>HN</dt><dd class="mono" style="font-size:1.1rem;font-weight:600">${esc(r.hn)}</dd>
+      <dt>Sample No.</dt><dd class="mono">${r.sample?esc(r.sample):`<span class="muted">ยังไม่ระบุ</span>`}</dd>
+      <dt>วันเวลาส่งตรวจ</dt><dd>${esc(r.specAt||'–')}</dd>
+      <dt>ส่งใบตามโดย</dt><dd>${esc(r.reqName)}</dd><dt>เวลาส่งใบตาม</dt><dd>${esc(r.reqAt)}</dd></dl>
+      <div class="flags">
+        ${r.sampleFill?`<div class="flag ok">ระบบจะบันทึก Sample No. ${esc(d.sample)} ลงใบตามนี้ให้</div>`:r.sampleOk?'<div class="flag ok">Sample No. ตรงกับใบตาม</div>':`<div class="flag bad">Sample No. ไม่ตรงกับใบตาม ห้ามหยิบ</div>`}
+        ${r.specOk?'<div class="flag ok">วันเวลาส่งตรวจตรงกับใบตาม</div>':'<div class="flag warn">วันเวลาส่งตรวจไม่ตรงกับใบตาม ตรวจให้แน่ใจก่อนหยิบ</div>'}
+      </div>
+      <div id="err-${i}"></div>
+      ${r.sampleOk?`<button class="btn btn-blue btn-block" data-i="${i}">ยืนยันรับสไลด์ HN ${esc(r.hn)}</button>`:''}
+    </div>`;
+  $('#f').onsubmit=async e=>{e.preventDefault();const b=e.target.querySelector('button[type=submit]'),box=$('#v-card');
+    const d=data();$('#err').innerHTML='';box.innerHTML='';
+    if(!d.sample||!d.hn||!d.specAt){$('#err').innerHTML=errBox('กรอก Sample No., HN และวันเวลาส่งตรวจให้ครบทุกช่อง');return}
+    busy(b,true,'กำลังค้นหา…');
+    let res;try{res=await run('apiFindForReceive',store.get(TOKEN_KEY),d)}catch(err){$('#err').innerHTML=errBox(err.message);busy(b,false);return}
+    busy(b,false);
+    if(res.received){const r=res.received;box.innerHTML=`<div class="alert bad">สไลด์ของการส่งตรวจนี้ถูกรับไปแล้ว\nHN ${esc(r.hn)} · Sample No. ${esc(r.sample)} · ส่งตรวจ ${esc(r.specAt||'–')}\nรับโดย ${esc(r.recvName)} เมื่อ ${esc(r.recvAt)}</div>`;return}
+    if(!res.open.length){box.innerHTML=`<div class="alert warn">ไม่พบใบตามที่ยังไม่รับของ HN นี้ ถ้าเป็นสไลด์ที่หมอขอ include ให้ใช้ "บันทึกรับ Slide include"</div>
+      <button class="btn btn-violet btn-block" id="to-inc">ไปบันทึกรับ Slide include</button>`;
+      $('#to-inc').onclick=()=>{carry=d;view='include';render()};return}
+    box.innerHTML=(res.open.length>1?'<div class="alert info">HN นี้มีใบตามมากกว่า 1 รายการ เลือกรายการที่ตรงกับสไลด์</div>':'')+res.open.map((r,i)=>card(r,i,d)).join('');
+    box.scrollIntoView({behavior:'smooth',block:'start'});
+    box.querySelectorAll('button[data-i]').forEach(btn=>btn.onclick=async()=>{const r=res.open[+btn.dataset.i];busy(btn,true);
+      try{const out=await run('apiCheckOut',store.get(TOKEN_KEY),{row:r.row,sample:d.sample,hn:d.hn,specAt:d.specAt});lastDone={kind:'out',r:out};view='done';render()}
+      catch(err){$('#err-'+btn.dataset.i).innerHTML=errBox(err.message);busy(btn,false)}});
+  };
+}
+
+/* รับ Slide include: ไม่ต้องส่งใบตามก่อน */
+let carry=null;
+function vInc(){
+  app.innerHTML=`<div class="col"><section class="panel">${backHead('บันทึกรับ Slide include')}
+    <div class="alert info">สำหรับสไลด์ที่หมอขอ include ห้องปฏิบัติการวางไว้ในตะกร้าแล้ว หยิบได้เลยโดยไม่ต้องส่งใบตาม</div>
+    <form id="f" class="form" novalidate>
+      ${scanField('i-sample','Sample No.')}
+      ${hnField('i-hn')}
+      ${wardCombo('i-ward',store.get(WARD_KEY)||'')}
+      ${meBox('ผู้รับสไลด์')}
+      <div class="hint">เวลารับสไลด์จะบันทึกให้อัตโนมัติเมื่อกดยืนยัน</div>
+      <div id="err"></div>
+      <button class="btn btn-violet btn-block" type="submit">ยืนยันรับ Slide include</button>
+    </form></section></div>`;
+  bindScan('i-sample');bindCombo('i-ward');
+  $('#back').onclick=()=>{view='home';render()};
+  if(carry){$('#i-sample').value=carry.sample;$('#i-hn').value=carry.hn;carry=null}
+  $('#i-sample').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('#i-hn').focus()}});
+  $('#f').onsubmit=async e=>{e.preventDefault();const b=e.target.querySelector('button[type=submit]');$('#err').innerHTML='';
+    const d={sample:$('#i-sample').value.trim(),hn:$('#i-hn').value.trim(),ward:$('#i-ward').value.trim()};
+    if(!d.sample||!d.hn){$('#err').innerHTML=errBox('กรอก Sample No. และ HN ให้ครบ');return}
+    busy(b,true);
+    try{const r=await run('apiInclude',store.get(TOKEN_KEY),d);store.set(WARD_KEY,r.ward);lastDone={kind:'inc',r};view='done';render()}
+    catch(err){$('#err').innerHTML=errBox(err.message);busy(b,false)}};
+}
+function vDone(){
+  const {kind,r}=lastDone;
+  const T={in:['บันทึกส่งใบตามสไลด์แล้ว','ส่งใบตามอีกรายการ','checkin','btn-teal'],out:['บันทึกรับสไลด์แล้ว','รับสไลด์อีกรายการ','checkout','btn-blue'],inc:['บันทึกรับ Slide include แล้ว','รับ Slide include อีกรายการ','include','btn-violet']}[kind];
+  app.innerHTML=`<div class="col"><section class="panel done">
+    <div class="tick"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg></div>
+    <h2>${T[0]}</h2>
+    <div class="time">${esc(r.time)}</div><div class="small muted">${esc(r.date)}</div>
+    <dl class="kv" style="text-align:left"><dt>HN</dt><dd class="mono">${esc(r.hn)}</dd><dt>Sample No.</dt><dd class="mono">${sampleTxt(r.sample)}</dd>
+    ${r.specAt?`<dt>วันเวลาส่งตรวจ</dt><dd>${esc(r.specAt)}</dd>`:''}<dt>วอร์ด</dt><dd>${esc(r.ward)}</dd></dl>
+    ${kind==='in'?`<p class="small muted" style="margin:0">กลับมารับสไลด์ได้ประมาณ ${LATE_MIN} นาที ตอนรับต้องกรอก Sample No., HN และวันเวลาส่งตรวจ</p>`:''}
+    <button class="btn btn-ghost btn-block" id="again">${T[1]}</button>
+    <button class="btn ${T[3]} btn-block" id="home">กลับหน้าแรก</button></section></div>`;
+  $('#again').onclick=()=>{view=T[2];render()};
+  $('#home').onclick=()=>{view='home';render()};
+}
+
+/* ---------- lab overview ---------- */
+function vPin(){
+  app.innerHTML=`<div class="col"><section class="panel"><h2>ภาพรวมห้องปฏิบัติการ</h2>
+    <form id="f" class="form" novalidate><div class="field"><label for="pin">PIN ของห้องปฏิบัติการ</label>
+    <input class="input mono" id="pin" type="password" inputmode="numeric" autocomplete="off"></div>
+    <div id="err"></div><button class="btn btn-blue btn-block" type="submit">เข้าดูภาพรวม</button></form></section></div>`;
+  $('#pin').focus();
+  $('#f').onsubmit=async e=>{e.preventDefault();const b=e.target.querySelector('button[type=submit]');busy(b,true,'กำลังตรวจสอบ…');
+    try{labRows=await run('apiLabList',$('#pin').value);labPin=$('#pin').value;try{sessionStorage.setItem('cbcLabPin',labPin)}catch(x){}renderLab()}
+    catch(err){$('#err').innerHTML=`<div class="alert bad">${esc(err.message)}</div>`;busy(b,false)}};
+}
+async function reloadLab(){try{labRows=await run('apiLabList',labPin);if(mode==='lab')renderLab()}catch(err){toast(err.message)}}
+function renderLab(){
+  const c=k=>labRows.filter(r=>r.status===k).length;
+  let rows=labRows.filter(r=>r.status===labFilter);
+  const q=labQ.trim().toLowerCase();
+  if(q)rows=rows.filter(r=>[r.sample,r.hn,r.ward,r.reqName].join(' ').toLowerCase().includes(q));
+  rows.sort((a,b)=>labFilter==='in'?a.reqTs-b.reqTs:b.recvTs-a.recvTs);
+  const stat=(k,n,l)=>`<button class="stat" data-f="${k}" aria-pressed="${labFilter===k}"><div class="n">${n}</div><div class="l">${l}</div></button>`;
+  app.innerHTML=`<div class="wide">
+   <div class="stats">${stat('in',c('in'),'ส่งใบตามแล้ว ยังไม่รับ')}${stat('out',c('out'),'รับสไลด์แล้ว (3 วันล่าสุด)')}</div>
+   <div class="toolbar"><input class="input" id="lab-q" placeholder="ค้นหา Sample No., HN, วอร์ด, ชื่อ" value="${esc(labQ)}">
+     <button class="btn btn-ghost" id="lab-refresh">รีเฟรช</button>
+     <span class="small muted">${labFilter==='in'?`แดง = ส่งใบตามเกิน ${LATE_MIN} นาทีแล้วยังไม่มารับ · `:''}รีเฟรชเองทุก 1 นาที</span></div>
+   <div class="tbl-wrap"><table><thead><tr><th>HN</th><th>Sample No.</th><th>วอร์ด</th><th>วันเวลาส่งตรวจ</th><th>ส่งใบตาม: ผู้ส่ง / เวลา</th><th>รับสไลด์: ผู้รับ / เวลา</th><th>${labFilter==='in'?'รอมาแล้ว':'ใช้เวลา'}</th></tr></thead><tbody>
+   ${rows.length?rows.map(r=>{const m=r.reqTs?Math.round(((r.recvTs||Date.now())-r.reqTs)/60000):null;
+     const late=r.status==='in'&&m>LATE_MIN;
+     return `<tr><td class="mono">${esc(r.hn)}</td><td class="mono">${r.sample?esc(r.sample):'<span class="muted">–</span>'}</td><td>${esc(r.ward)}</td>
+       <td>${esc(r.specAt||'–')}</td>
+       <td>${r.include?'<span class="tag-inc" style="margin:0">Include</span><br><span class="small muted">ไม่ได้ส่งใบตาม</span>':`${esc(r.reqName)}<br><span class="small muted">${esc(r.reqAt)}</span>${r.photo?`<br><a class="small" href="${esc(r.photo)}" target="_blank" rel="noopener">ดูรูปหลักฐาน</a>`:''}`}</td>
+       <td>${r.status==='out'?`${esc(r.recvName)}<br><span class="small muted">${esc(r.recvAt)}</span>`:'<span class="muted">–</span>'}</td>
+       <td class="${late?'late':''}">${m==null?'–':dur(m)}</td></tr>`}).join(''):'<tr><td colspan="7" class="muted" style="text-align:center;padding:28px">ไม่มีรายการในกลุ่มนี้</td></tr>'}
+   </tbody></table></div></div>`;
+  app.querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>{labFilter=b.dataset.f;renderLab()});
+  $('#lab-refresh').onclick=reloadLab;
+  const qi=$('#lab-q');qi.oninput=()=>{labQ=qi.value;const p=qi.selectionStart;renderLab();const n=$('#lab-q');n.focus();n.setSelectionRange(p,p)};
+}
+
+/* ---------- start ---------- */
+$('#mode-ward').onclick=()=>{mode='ward';if(view==='done')view='home';render()};
+$('#mode-lab').onclick=async()=>{mode='lab';if(!labPin){try{labPin=sessionStorage.getItem('cbcLabPin')||''}catch(e){}}
+  if(labPin){app.innerHTML='<div class="loading">กำลังโหลด…</div>';try{labRows=await run('apiLabList',labPin)}catch(e){labPin=''}}render()};
+setInterval(()=>{if(mode==='lab'&&labPin&&document.activeElement&&document.activeElement.id!=='lab-q')reloadLab()},60000);
+
+run('apiInit',store.get(TOKEN_KEY)).then(d=>{WARDS=d.wards;ME=d.me;LATE_MIN=d.lateMin;view=ME?'home':'register';render()})
+  .catch(err=>{app.innerHTML=`<div class="col"><div class="alert bad">โหลดไม่สำเร็จ: ${esc(err.message)}</div></div>`});
+})();
+</script>
+</body>
+</html>
