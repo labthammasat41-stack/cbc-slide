@@ -404,7 +404,8 @@ details.tbl th,details.tbl td{padding:6px 10px}
 (function(){
 const TOKEN_KEY='cbcSlideToken', WARD_KEY='cbcLastWard';
 const STATUS={in:'ส่งใบตามแล้ว รอรับ',out:'รับสไลด์แล้ว'};
-let WARDS=[], ME=null, LATE_MIN=30, mode='ward', view='home', lastDone=null, labPin='', labRows=[], labFilter='in', labQ='', labTab='list', statDays=7, statData=null, statCache={};
+const lateTxt=()=>LATE_MIN%60===0?`${LATE_MIN/60} ชั่วโมง`:`${LATE_MIN} นาที`;
+let WARDS=[], ME=null, LATE_MIN=60, mode='ward', view='home', lastDone=null, labPin='', labRows=[], labFilter='in', labQ='', labTab='list', statDays=7, statData=null, statCache={};
 
 // ลิงก์ /exec ของ Apps Script (ตัวรับข้อมูลที่บันทึกลง Google Sheets)
 const API_URL='https://script.google.com/macros/s/AKfycbyqxxgojW1ClbxC3L49933YuOZxhVTChcOFa1aWwIeeKNhaBQT0Ettu6fheGU02S_Ex8g/exec';
@@ -644,7 +645,7 @@ function showGuide(){
     <ol class="steps">
       <li><div><b>กรุณาหาสไลด์ในตะกร้าก่อนครับ</b><span class="small">ตรวจดู HN และ Sample No. ให้ตรงกับใบตาม</span></div></li>
       <li><div><b>หากหาไม่พบ กรุณาวางใบตาม Slide ไว้ในตะกร้า</b><span class="small">แล้วกด "บันทึกส่งใบตามสไลด์" ในแอปครับ</span></div></li>
-      <li><div><b>รอประมาณ 30 นาที</b><span class="small">แล้วกลับมาหาสไลด์ในตะกร้าอีกครั้งครับ</span></div></li>
+      <li><div><b>รอประมาณ 1 ชั่วโมง</b><span class="small">แล้วกลับมาหาสไลด์ในตะกร้าอีกครั้งครับ</span></div></li>
       <li><div><b>เมื่อพบสไลด์แล้ว กรุณากด "บันทึกรับสไลด์" ในแอป</b><span class="small">ทุกครั้งก่อนนำสไลด์ออกไปครับ</span></div></li>
     </ol>
     <div class="small muted" style="text-align:center">มีข้อสงสัย กดที่น้องสไลด์มุมขวาล่างได้ตลอดเลยครับ</div>
@@ -662,7 +663,7 @@ function showHelp(){
       <li><b>Sample No.</b> ถ้ามี กดปุ่มกล้องสแกนบาร์โค้ด ระบบจะเติมวันที่ส่งตรวจให้</li>
       <li>เลือก<b>วอร์ด</b> ระบบจะบอกว่าตามได้ถึงเมื่อไหร่</li>
       <li>ถ้าต้องการ กด<b>ถ่ายภาพหลักฐาน</b> ใบตามที่วางในตะกร้า (ไม่บังคับ)</li>
-      <li>กด <b>ยืนยันบันทึกส่งใบตาม</b> แล้วกลับมาอีกประมาณ 30 นาที</li></ol>
+      <li>กด <b>ยืนยันบันทึกส่งใบตาม</b> แล้วกลับมาอีกประมาณ 1 ชั่วโมง</li></ol>
       <div class="small muted">ถ้าขึ้นเตือนว่าส่งใบตามแล้ว ไม่ต้องบันทึกซ้ำ ถ้าขึ้นว่าเกินกำหนดหรือยังไม่ถึงเวลา จะบันทึกไม่ได้</div></section>
     <section class="help-sec"><h3><span class="dot" style="background:var(--blue)"></span>2. บันทึกรับสไลด์</h3>
       <ol><li>เจอสไลด์ในตะกร้าแล้ว กดปุ่มสีน้ำเงิน <b>บันทึกรับสไลด์</b></li>
@@ -688,9 +689,9 @@ function showHelp(){
 /* ---------- ผู้ช่วยน้องสไลด์ (กดเลือกคำถาม ไม่ใช้ AI) ---------- */
 const CALL='<span class="call">8133</span>';
 const FAQ=[
- {g:'การตาม Slide',q:'ตาม Slide ต้องทำอะไรบ้าง',a:'ขั้นตอนการตาม Slide มีดังนี้ครับ\n1. หาสไลด์ในตะกร้าก่อน\n2. หากหาไม่พบ วางใบตาม Slide ไว้ในตะกร้า แล้วกด "บันทึกส่งใบตามสไลด์" ในแอป\n3. รอประมาณ 30 นาที แล้วกลับมาหาอีกครั้ง\n4. เมื่อพบสไลด์แล้ว กด "บันทึกรับสไลด์" ในแอปทุกครั้งก่อนนำออกไปครับ',n:[2,3,4]},
- {g:'การตาม Slide',q:'หาสไลด์ในตะกร้าไม่เจอ ทำอย่างไร',a:'กรุณาวางใบตาม Slide ไว้ในตะกร้า แล้วกดปุ่มสีเขียว "บันทึกส่งใบตามสไลด์" ในแอปครับ\nจากนั้นรอประมาณ 30 นาที แล้วกลับมาหาในตะกร้าอีกครั้งนะครับ',n:[3,6,7]},
- {g:'การตาม Slide',q:'ส่งใบตามแล้ว ต้องรอนานเท่าไร',a:'รอประมาณ 30 นาทีครับ แล้วกลับมาหาสไลด์ในตะกร้าอีกครั้ง\nหากรอนานแล้วยังไม่พบ สอบถามได้ที่ '+CALL+' ครับ',n:[4,13]},
+ {g:'การตาม Slide',q:'ตาม Slide ต้องทำอะไรบ้าง',a:'ขั้นตอนการตาม Slide มีดังนี้ครับ\n1. หาสไลด์ในตะกร้าก่อน\n2. หากหาไม่พบ วางใบตาม Slide ไว้ในตะกร้า แล้วกด "บันทึกส่งใบตามสไลด์" ในแอป\n3. รอประมาณ 1 ชั่วโมง แล้วกลับมาหาอีกครั้ง\n4. เมื่อพบสไลด์แล้ว กด "บันทึกรับสไลด์" ในแอปทุกครั้งก่อนนำออกไปครับ',n:[2,3,4]},
+ {g:'การตาม Slide',q:'หาสไลด์ในตะกร้าไม่เจอ ทำอย่างไร',a:'กรุณาวางใบตาม Slide ไว้ในตะกร้า แล้วกดปุ่มสีเขียว "บันทึกส่งใบตามสไลด์" ในแอปครับ\nจากนั้นรอประมาณ 1 ชั่วโมง แล้วกลับมาหาในตะกร้าอีกครั้งนะครับ',n:[3,6,7]},
+ {g:'การตาม Slide',q:'ส่งใบตามแล้ว ต้องรอนานเท่าไร',a:'รอประมาณ 1 ชั่วโมงครับ แล้วกลับมาหาสไลด์ในตะกร้าอีกครั้ง\nหากรอนานแล้วยังไม่พบ สอบถามได้ที่ '+CALL+' ครับ',n:[4,13]},
  {g:'การตาม Slide',q:'ตามได้ถึงกี่โมง',a:'นับจากวันเวลาส่งตรวจนะครับ\n\nวอร์ดทั่วไป\n• ส่งตรวจถึง 20:00 น. ตามได้ถึง 22:00 น. ของวันเดียวกัน\n• ส่งตรวจหลัง 20:00 น. ตามได้ 08:00–14:00 น. ของวันถัดไป\n\nER และ OPD นอกเวลา\n• ส่งตรวจถึง 20:00 น. ตามได้ถึง 08:00 น. ของวันถัดไป\n• ส่งตรวจหลัง 20:00 น. ตามได้ถึง 14:00 น. ของวันถัดไป\n\nเมื่อกรอกวันเวลาส่งตรวจและวอร์ดแล้ว แอปจะบอกให้ทันทีครับ',n:[10,11]},
  {g:'การตาม Slide',q:'Slide include คืออะไร',a:'Slide include คือสไลด์ที่แพทย์ขอไว้ ห้องปฏิบัติการจะวางไว้ในตะกร้าให้เลยครับ ไม่ต้องส่งใบตาม\nเมื่อพบแล้ว กดปุ่มสีม่วง "บันทึกรับ Slide include" กรอก Sample No., HN และวอร์ด แล้วกดยืนยันก่อนนำออกไปนะครับ\n\nสำคัญ: หากได้ส่งใบตามสไลด์นี้ไว้แล้ว กรุณาบันทึกที่ปุ่มสีฟ้า "บันทึกรับสไลด์" แทนนะครับ แอปจะแจ้งเตือนให้ครับ\nหากแน่ใจว่าเป็นสไลด์ของการส่งตรวจคนละครั้ง สอบถามได้ที่ '+CALL+' ครับ',n:[17,1,13]},
  {g:'การใช้งานแอป',q:'ไม่มี Sample No. ส่งใบตามได้ไหม',a:'ได้ครับ ตอนส่งใบตาม กรอกเพียง HN และวันเวลาส่งตรวจก็บันทึกได้\nแต่ตอนรับสไลด์ ต้องสแกน Sample No. จากสไลด์ และกรอก HN ทุกครั้งนะครับ',n:[7,8]},
@@ -1030,7 +1031,7 @@ function vDone(){
     <div class="time">${esc(r.time)}</div><div class="small muted">${esc(r.date)}</div>
     <dl class="kv" style="text-align:left"><dt>HN</dt><dd class="mono">${esc(r.hn)}</dd><dt>Sample No.</dt><dd class="mono">${sampleTxt(r.sample)}</dd>
     ${r.specAt?`<dt>วันเวลาส่งตรวจ</dt><dd>${esc(r.specAt)}</dd>`:''}<dt>วอร์ด</dt><dd>${esc(r.ward)}</dd></dl>
-    ${kind==='in'?`<p class="small muted" style="margin:0">กลับมารับสไลด์ได้ประมาณ ${LATE_MIN} นาที ตอนรับ ต้องสแกน Sample No. จากสไลด์และกรอก HN</p>`:''}
+    ${kind==='in'?`<p class="small muted" style="margin:0">กลับมารับสไลด์ได้ในประมาณ ${lateTxt()} ตอนรับ ต้องสแกน Sample No. จากสไลด์และกรอก HN</p>`:''}
     <button class="btn btn-ghost btn-block" id="again">${T[1]}</button>
     <button class="btn ${T[3]} btn-block" id="home">กลับหน้าแรก</button></section></div>`;
   $('#again').onclick=()=>{view=T[2];render()};
@@ -1061,7 +1062,7 @@ function renderLab(){
    <div class="stats">${stat('in',c('in'),'ส่งใบตามแล้ว ยังไม่รับ')}${stat('out',c('out'),'รับสไลด์แล้ว (3 วันล่าสุด)')}</div>
    <div class="toolbar"><input class="input" id="lab-q" placeholder="ค้นหา Sample No., HN, วอร์ด, ชื่อ" value="${esc(labQ)}">
      <button class="btn btn-ghost" id="lab-refresh">รีเฟรช</button>
-     <span class="small muted">${labFilter==='in'?`แดง = ส่งใบตามเกิน ${LATE_MIN} นาทีแล้วยังไม่มารับ · `:''}รีเฟรชเองทุก 1 นาที</span></div>
+     <span class="small muted">${labFilter==='in'?`แดง = ส่งใบตามเกิน ${lateTxt()} แล้วยังไม่มารับ · `:''}รีเฟรชเองทุก 1 นาที</span></div>
    <div class="tbl-wrap"><table><thead><tr><th>HN</th><th>Sample No.</th><th>วอร์ด</th><th>วันเวลาส่งตรวจ</th><th>ส่งใบตาม: ผู้ส่ง / เวลา</th><th>รับสไลด์: ผู้รับ / เวลา</th><th>${labFilter==='in'?'รอมาแล้ว':'ใช้เวลา'}</th></tr></thead><tbody>
    ${rows.length?rows.map(r=>{const m=r.reqTs?Math.round(((r.recvTs||Date.now())-r.reqTs)/60000):null;
      const late=r.status==='in'&&m>LATE_MIN;
@@ -1130,7 +1131,7 @@ function renderStats(){
    <div class="kpis">
     <div class="kpi"><span class="l"><i class="sw" style="background:${C1}"></i>ส่งใบตามสไลด์</span><span class="n">${nf(k.req)}<small>ใบ</small></span><span class="s">รับไปแล้ว ${nf(k.reqDone)} ใบ</span></div>
     <div class="kpi"><span class="l"><i class="sw" style="background:${C2}"></i>รับ Slide include</span><span class="n">${nf(k.inc)}<small>สไลด์</small></span><span class="s">ไม่ต้องส่งใบตาม</span></div>
-    <div class="kpi"><span class="l">เวลารอ (ค่ากลาง)</span><span class="n">${k.waitMed==null?'–':dur(k.waitMed)}</span><span class="s">${pct==null?'ยังไม่มีรายการที่รับแล้ว':`รับภายใน ${d.lateMin} นาที ${pct}%`}</span></div>
+    <div class="kpi"><span class="l">เวลารอ (ค่ากลาง)</span><span class="n">${k.waitMed==null?'–':dur(k.waitMed)}</span><span class="s">${pct==null?'ยังไม่มีรายการที่รับแล้ว':`รับภายใน ${d.lateMin%60===0?d.lateMin/60+' ชั่วโมง':d.lateMin+' นาที'} ${pct}%`}</span></div>
     <div class="kpi ${k.pendingOld?'warn':''}"><span class="l">ค้างอยู่ตอนนี้</span><span class="n">${nf(k.pendingNow)}<small>ใบ</small></span><span class="s">${k.pendingOld?`ค้างเกิน 2 ชม. ${nf(k.pendingOld)} ใบ`:'ไม่มีรายการค้างเกิน 2 ชม.'}</span></div>
    </div>
    ${empty?`<div class="ccard"><div class="empty"><div class="art">${artSearch}</div><b>ยังไม่มีข้อมูลในช่วง ${d.days} วันนี้</b><span class="small muted">เมื่อมีการบันทึก กราฟจะแสดงที่นี่</span></div></div>`:`
